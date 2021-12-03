@@ -383,13 +383,39 @@ def mon_to_season1D(da):
     time = da.coords["time"]
     nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1] + 1
     print("nyear = ", nyear)
-    year = pd.date_range(pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS")
+    year = pd.date_range(
+        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS"
+    )
     timesel = time[2:]
     da = da.sel(time=timesel).coarsen(time=3).mean()
     season = ["MAM", "JJA", "SON", "DJF"]
     temp = np.array(da)
-    temp = np.reshape(temp, (4, nyear), order = "F")
+    temp = np.reshape(temp, (4, nyear), order="F")
     nda = xr.DataArray(temp, coords=[season, year], dims=["season", "time"])
+    del (time, nyear, year, timesel, season, temp)
+    return nda
+
+
+def mon_to_season3D(da):
+    da.transpose("time", "level", "lat", "lon")
+    time = da.coords["time"]
+    level = da.coords["level"]
+    lat = da.coords["lat"]
+    lon = da.coords["lon"]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1] + 1
+    print("nyear = ", nyear)
+    year = pd.date_range(
+        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS"
+    )
+    timesel = time[2:]
+    da = da.sel(time=timesel).coarsen(time=3).mean()
+    season = ["MAM", "JJA", "SON", "DJF"]
+    temp = np.array(da)
+    temp = np.reshape(
+        temp, (4, nyear, level.shape[0], lat.shape[0], lon.shape[0]), order="F"
+    )
+    nda = xr.DataArray(temp, coords=[season, year, level, lat, lon], dims=["season", "time", "level", "lat", "lon"])
+    del(time, level, lat, lon, nyear, year, timesel, season, temp)
     return nda
 
 
@@ -401,9 +427,16 @@ def leadlag_reg(x, y, freq, ll):
 
 
 # %%
-# x = np.arange(1, 4 * 42 + 1, 1)
-
+x = np.random.randint(low=0, high=100, size=(8, 2, 2, 2), dtype="l")
 # print(np.reshape(x, (4, 42), order="F"))
-print(pd.date_range("0101", "1201", freq = "MS"))
 
+# %%
+lat = [0.0, 1.0]
+lon = [0.0, 1.0]
+level = [850, 200]
+time = np.arange(1, 9, 1)
+
+x_n = np.reshape(x, (4, 2, 2, 2, 2), order="F")
+print(x[:, 0, 0, 0])
+print(x_n[1, :, 0, 0, 0])
 # %%
