@@ -2,8 +2,8 @@
 Author: ChenHJ
 Date: 2021-12-03 11:45:38
 LastEditors: ChenHJ
-LastEditTime: 2021-12-03 11:45:39
-FilePath: /chenhj/1201code/self_def.py
+LastEditTime: 2021-12-03 14:22:56
+FilePath: /chenhj/self_def/self_def.py
 Aim: 
 Mission: 
 '''
@@ -204,20 +204,30 @@ def standardize(da):
     std = da.std(dim="time", skipna=True)
     return (da - mean) / std
 
+
+'''
+description: 
+    计算SAM index，v为monthly meridional wind，并需要包含850hPa和200hPa；本计算已进行纬度加权；
+param {*} v
+return {*}
+'''
 def SAM(v):
     # V850 - V200
+    v.transpose(["time","level","lat","lon"], missing_dims = "warn")
     lon = v.lon
     lat = v.lat
     lon_range = lon[(lon >= 70.0) & (lon <= 110.0)]
     lat_range = lat[(lat >= 10.0) & (lat <= 30.0)]
     v850 = v.sel(level=850, lon=lon_range, lat=lat_range).drop("level")
     v200 = v.sel(level=200, lon=lon_range, lat=lat_range).drop("level")
+    v850 = p_time(v850, 6, 8, True)
+    v200 = p_time(v200, 6, 8, True)
     weights = np.cos(np.deg2rad(v850.lat))
     weights.name = "weights"
     v850_weighted_mean = v850.weighted(weights).mean(("lon", "lat"), skipna=True)
     v200_weighted_mean = v200.weighted(weights).mean(("lon", "lat"), skipna=True)
-    sam = standardize(rmmean(v850_weighted_mean) - rmmean(v200_weighted_mean))
-    # sam = v850-v200
+    # sam = standardize(rmmean(v850_weighted_mean) - rmmean(v200_weighted_mean))
+    sam = v850-v200
     del (
         lon,
         lat,
@@ -231,7 +241,11 @@ def SAM(v):
     )
     return sam
 
-
+'''
+description: 
+param {*} u
+return {*}
+'''
 def SEAM(u):
     lon = u.lon
     lat = u.lat
