@@ -1,4 +1,4 @@
-'''
+"""
 Author: ChenHJ
 Date: 2021-12-03 11:45:38
 LastEditors: ChenHJ
@@ -6,7 +6,7 @@ LastEditTime: 2021-12-03 14:54:28
 FilePath: /chenhj/self_def/self_def.py
 Aim: 
 Mission: 
-'''
+"""
 import numpy as np
 import xarray as xr
 import os
@@ -205,29 +205,29 @@ def standardize(da):
     return (da - mean) / std
 
 
-'''
+"""
 description: 
     计算SAM index，v为monthly meridional wind，并需要包含850hPa和200hPa；本计算已进行纬度加权；
 param {*} v
 return {*}
-'''
+"""
+
+
 def SAM(v):
     # V850 - V200
-    v.transpose(["time","level","lat","lon"], missing_dims = "warn")
     lon = v.lon
     lat = v.lat
     lon_range = lon[(lon >= 70.0) & (lon <= 110.0)]
     lat_range = lat[(lat >= 10.0) & (lat <= 30.0)]
     v850 = v.sel(level=850, lon=lon_range, lat=lat_range).drop("level")
     v200 = v.sel(level=200, lon=lon_range, lat=lat_range).drop("level")
-    v850 = p_time(v850, 6, 8, True)
-    v200 = p_time(v200, 6, 8, True)
+
     weights = np.cos(np.deg2rad(v850.lat))
     weights.name = "weights"
     v850_weighted_mean = v850.weighted(weights).mean(("lon", "lat"), skipna=True)
     v200_weighted_mean = v200.weighted(weights).mean(("lon", "lat"), skipna=True)
     # sam = standardize(rmmean(v850_weighted_mean) - rmmean(v200_weighted_mean))
-    sam = v850-v200
+    sam = v850 - v200
     del (
         lon,
         lat,
@@ -241,12 +241,15 @@ def SAM(v):
     )
     return sam
 
-'''
+
+"""
 description: 
     计算SEAM index，u为monthly zonal wind，并需要包含850hPa层次；本计算已进行纬度加权；
 param {*} u
 return {*}
-'''
+"""
+
+
 def SEAM(u):
     lon = u.lon
     lat = u.lat
@@ -256,9 +259,6 @@ def SEAM(u):
     lat_range2 = lat[(lat >= 22.5) & (lat <= 32.5)]
     u1 = u.sel(level=850, lon=lon_range1, lat=lat_range1).drop("level")
     u2 = u.sel(level=850, lon=lon_range2, lat=lat_range2).drop("level")
-    
-    u1 = p_time(u1, 6, 8, True)
-    u2 = p_time(u2, 6, 8, True)
 
     weights1 = np.cos(np.deg2rad(u1.lat))
     weights1.name = "weights"
@@ -286,11 +286,14 @@ def SEAM(u):
     )
     return seam
 
-'''
+
+"""
 description: 
 param {*} u
 return {*}
-'''
+"""
+
+
 def EAM(u):
     lon = u.lon
     lat = u.lat
@@ -305,9 +308,6 @@ def EAM(u):
     weights1.name = "weights"
     weights2 = np.cos(np.deg2rad(u2.lat))
     weights2.name = "weights"
-    
-    u1 = p_time(u1, 6, 8, True)
-    u2 = p_time(u2, 6, 8, True)
 
     u1_weighted_mean = u1.weighted(weights1).mean(("lon", "lat"), skipna=True)
     u2_weighted_mean = u2.weighted(weights2).mean(("lon", "lat"), skipna=True)
@@ -330,3 +330,47 @@ def EAM(u):
         u2_weighted_mean,
     )
     return eam
+
+
+"""
+description: 
+    计算Webster-Yang index；u为zonal wind，需包含850hPa和200hPa
+param {*} u
+return {*}
+"""
+
+
+def WY(u):
+    lon = u.lon
+    lat = u.lat
+    lon_range1 = lon[(lon >= 40.0) & (lon <= 110.0)]
+    lat_range1 = lat[(lat >= 5.0) & (lat <= 20.0)]
+
+    u850 = u.sel(level=850, lon=lon_range1, lat=lat_range1).drop("level")
+    u200 = u.sel(level=200, lon=lon_range1, lat=lat_range1).drop("level")
+
+    weights1 = np.cos(np.deg2rad(u850.lat))
+    weights1.name = "weights"
+    weights2 = np.cos(np.deg2rad(u200.lat))
+    weights2.name = "weights"
+
+    u850_weighted_mean = u850.weighted(weights1).mean(("lon", "lat"), skipna=True)
+    u200_weighted_mean = u200.weighted(weights2).mean(("lon", "lat"), skipna=True)
+
+    # seam = standardize(rmmean(u850_weighted_mean) - rmmean(u200_weighted_mean))
+    wyindex = u850 - u200
+    del (
+        lon,
+        lat,
+        lon_range1,
+        lat_range1,
+        lon_range2,
+        lat_range2,
+        u1,
+        u2,
+        weights1,
+        weights2,
+        u1_weighted_mean,
+        u2_weighted_mean,
+    )
+    return wyindex
