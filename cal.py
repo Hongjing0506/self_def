@@ -360,20 +360,18 @@ def WY(u):
     u200_weighted_mean = u200.weighted(weights2).mean(("lon", "lat"), skipna=True)
 
     # seam = standardize(rmmean(u850_weighted_mean) - rmmean(u200_weighted_mean))
-    wyindex = u850 - u200
+    wyindex = u850_weighted_mean - u200_weighted_mean
     del (
         lon,
         lat,
         lon_range1,
         lat_range1,
-        lon_range2,
-        lat_range2,
-        u1,
-        u2,
+        u850,
+        u200,
         weights1,
         weights2,
-        u1_weighted_mean,
-        u2_weighted_mean,
+        u850_weighted_mean,
+        u200_weighted_mean,
     )
     return wyindex
 
