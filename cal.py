@@ -381,12 +381,20 @@ def WY(u):
 def mon_to_season1D(da):
     da.transpose("time", ...)
     time = da.coords["time"]
-    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1] + 1
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
     print("nyear = ", nyear)
     year = pd.date_range(
-        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS"
+        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-2], freq="AS"
     )
-    timesel = time[2:]
+    try:
+        if pd.to_datetime(time).month[-1] == 2:
+            timesel = time[2:]
+        elif pd.to_datetime(time).month[-1] == 12:
+            timesel = time[2:-10]
+        else:
+            raise ValueError("the time of variable should be end in FEB or DEC")
+    except ValueError as e:
+        print("error: ", repr(e))
     da = da.sel(time=timesel).coarsen(time=3).mean()
     season = ["MAM", "JJA", "SON", "DJF"]
     temp = np.array(da)
@@ -402,12 +410,20 @@ def mon_to_season3D(da):
     level = da.coords["level"]
     lat = da.coords["lat"]
     lon = da.coords["lon"]
-    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1] + 1
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
     print("nyear = ", nyear)
     year = pd.date_range(
-        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS"
+        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-2], freq="AS"
     )
-    timesel = time[2:]
+    try:
+        if pd.to_datetime(time).month[-1] == 2:
+            timesel = time[2:]
+        elif pd.to_datetime(time).month[-1] == 12:
+            timesel = time[2:-10]
+        else:
+            raise ValueError("the time of variable should be end in FEB or DEC")
+    except ValueError as e:
+        print("error: ", repr(e))
     da = da.sel(time=timesel).coarsen(time=3).mean()
     season = ["MAM", "JJA", "SON", "DJF"]
     temp = np.array(da)
