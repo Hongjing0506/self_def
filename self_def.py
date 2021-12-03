@@ -14,6 +14,7 @@ import os
 import re
 from cdo import Cdo
 import shutil
+import pandas as pd
 
 cdo = Cdo()
 
@@ -377,25 +378,32 @@ def WY(u):
     return wyindex
 
 
-
-
+def mon_to_season1D(da):
+    da.transpose("time", ...)
+    time = da.coords["time"]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1] + 1
+    print("nyear = ", nyear)
+    year = pd.date_range(pd.to_datetime(time).year[1], pd.to_datetime(time).year[-1], freq="AS")
+    timesel = time[2:]
+    da = da.sel(time=timesel).coarsen(time=3).mean()
+    season = ["MAM", "JJA", "SON", "DJF"]
+    temp = np.array(da)
+    temp = np.reshape(temp, (4, nyear), order = "F")
+    nda = xr.DataArray(temp, coords=[season, year], dims=["season", "time"])
+    return nda
 
 
 def leadlag_reg(x, y, freq, ll):
     if freq == "season":
-        rvalue = np.zeros((4,2*ll+1))
-        pvalue = np.zeros((4,2*ll+1))
-        trvalue = np.zeros((4,2*ll+1))
-        
+        rvalue = np.zeros((4, 2 * ll + 1))
+        pvalue = np.zeros((4, 2 * ll + 1))
+        trvalue = np.zeros((4, 2 * ll + 1))
+
 
 # %%
-x = np.array([1,2,3,4,5,np.nan])
-y = np.array([6,7,8,9,10,np.nan])
+# x = np.arange(1, 4 * 42 + 1, 1)
 
-m = xr.DataArray(y,coords=[x], dims=['x'])
-print(m)
-
-print(dim_linregress(x[:-2], y[:-2])[2])
-# print(m.polyfit(dim = "x", deg = 1, skipna = True).polyfit_coefficients)
+# print(np.reshape(x, (4, 42), order="F"))
+print(pd.date_range("0101", "1201", freq = "MS"))
 
 # %%
