@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-03 11:45:38
 LastEditors: ChenHJ
-LastEditTime: 2021-12-03 14:25:22
+LastEditTime: 2021-12-03 14:54:28
 FilePath: /chenhj/self_def/self_def.py
 Aim: 
 Mission: 
@@ -286,7 +286,11 @@ def SEAM(u):
     )
     return seam
 
-
+'''
+description: 
+param {*} u
+return {*}
+'''
 def EAM(u):
     lon = u.lon
     lat = u.lat
@@ -301,11 +305,15 @@ def EAM(u):
     weights1.name = "weights"
     weights2 = np.cos(np.deg2rad(u2.lat))
     weights2.name = "weights"
+    
+    u1 = p_time(u1, 6, 8, True)
+    u2 = p_time(u2, 6, 8, True)
 
     u1_weighted_mean = u1.weighted(weights1).mean(("lon", "lat"), skipna=True)
     u2_weighted_mean = u2.weighted(weights2).mean(("lon", "lat"), skipna=True)
 
-    eam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
+    # eam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
+    eam = u1 - u2
 
     del (
         lon,
