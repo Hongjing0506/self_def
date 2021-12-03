@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-03 11:45:38
 LastEditors: ChenHJ
-LastEditTime: 2021-12-03 14:22:56
+LastEditTime: 2021-12-03 14:25:22
 FilePath: /chenhj/self_def/self_def.py
 Aim: 
 Mission: 
@@ -243,6 +243,7 @@ def SAM(v):
 
 '''
 description: 
+    计算SEAM index，u为monthly zonal wind，并需要包含850hPa层次；本计算已进行纬度加权；
 param {*} u
 return {*}
 '''
@@ -252,9 +253,12 @@ def SEAM(u):
     lon_range1 = lon[(lon >= 90.0) & (lon <= 130.0)]
     lat_range1 = lat[(lat >= 5.0) & (lat <= 15.0)]
     lon_range2 = lon[(lon >= 110.0) & (lon <= 140.0)]
-    lat_range2 = lat[(lat >= 22.0) & (lat <= 33.0)]
+    lat_range2 = lat[(lat >= 22.5) & (lat <= 32.5)]
     u1 = u.sel(level=850, lon=lon_range1, lat=lat_range1).drop("level")
     u2 = u.sel(level=850, lon=lon_range2, lat=lat_range2).drop("level")
+    
+    u1 = p_time(u1, 6, 8, True)
+    u2 = p_time(u2, 6, 8, True)
 
     weights1 = np.cos(np.deg2rad(u1.lat))
     weights1.name = "weights"
@@ -264,7 +268,8 @@ def SEAM(u):
     u1_weighted_mean = u1.weighted(weights1).mean(("lon", "lat"), skipna=True)
     u2_weighted_mean = u2.weighted(weights2).mean(("lon", "lat"), skipna=True)
 
-    seam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
+    # seam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
+    seam = u1 - u2
     del (
         lon,
         lat,
