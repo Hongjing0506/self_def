@@ -7,6 +7,7 @@ FilePath: /chenhj/self_def/self_def.py
 Aim: 
 Mission: 
 """
+# %%
 import numpy as np
 import xarray as xr
 import os
@@ -374,3 +375,27 @@ def WY(u):
         u2_weighted_mean,
     )
     return wyindex
+
+
+
+
+
+
+def leadlag_reg(x, y, freq, ll):
+    if freq == "season":
+        rvalue = np.zeros((4,2*ll+1))
+        pvalue = np.zeros((4,2*ll+1))
+        trvalue = np.zeros((4,2*ll+1))
+        
+
+# %%
+x = np.array([1,2,3,4,5,np.nan])
+y = np.array([6,7,8,9,10,np.nan])
+
+m = xr.DataArray(y,coords=[x], dims=['x'])
+print(m)
+
+print(dim_linregress(x[:-2], y[:-2])[2])
+# print(m.polyfit(dim = "x", deg = 1, skipna = True).polyfit_coefficients)
+
+# %%
