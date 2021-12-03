@@ -378,13 +378,21 @@ def WY(u):
     return wyindex
 
 
+"""
+description: 用于将1D的月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
+param {*} da
+return {*}
+"""
+
+
 def mon_to_season1D(da):
     da.transpose("time", ...)
     time = da.coords["time"]
     nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
-    print("nyear = ", nyear)
     year = pd.date_range(
-        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-2], freq="AS"
+        start=str(pd.to_datetime(time).year[1]),
+        end=str(pd.to_datetime(time).year[-1] - 1),
+        freq="AS",
     )
     try:
         if pd.to_datetime(time).month[-1] == 2:
@@ -404,6 +412,13 @@ def mon_to_season1D(da):
     return nda
 
 
+"""
+description: 用于将3D的月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
+param {*} da
+return {*}
+"""
+
+
 def mon_to_season3D(da):
     da.transpose("time", "level", "lat", "lon")
     time = da.coords["time"]
@@ -411,9 +426,10 @@ def mon_to_season3D(da):
     lat = da.coords["lat"]
     lon = da.coords["lon"]
     nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
-    print("nyear = ", nyear)
     year = pd.date_range(
-        pd.to_datetime(time).year[1], pd.to_datetime(time).year[-2], freq="AS"
+        start=str(pd.to_datetime(time).year[1]),
+        end=str(pd.to_datetime(time).year[-1] - 1),
+        freq="AS",
     )
     try:
         if pd.to_datetime(time).month[-1] == 2:
@@ -430,8 +446,12 @@ def mon_to_season3D(da):
     temp = np.reshape(
         temp, (4, nyear, level.shape[0], lat.shape[0], lon.shape[0]), order="F"
     )
-    nda = xr.DataArray(temp, coords=[season, year, level, lat, lon], dims=["season", "time", "level", "lat", "lon"])
-    del(time, level, lat, lon, nyear, year, timesel, season, temp)
+    nda = xr.DataArray(
+        temp,
+        coords=[season, year, level, lat, lon],
+        dims=["season", "time", "level", "lat", "lon"],
+    )
+    del (time, level, lat, lon, nyear, year, timesel, season, temp)
     return nda
 
 
@@ -443,7 +463,7 @@ def leadlag_reg(x, y, freq, ll):
 
 
 # %%
-x = np.random.randint(low=0, high=100, size=(8, 2, 2, 2), dtype="l")
+
 # print(np.reshape(x, (4, 42), order="F"))
 
 # %%
