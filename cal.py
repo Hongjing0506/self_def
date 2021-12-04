@@ -494,15 +494,15 @@ def leadlag_reg(x, y, freq, ll, inan):
                 
             if inan == True:
                 for iiinan in np.arange(0,x_nseason-1,1):
-                    avalue[iiinan, iiinan-ll+1:], balue[iiinan, iiinan-ll+1:], rvalue[iiinan, iiinan-ll+1:], pvalue[iiinan, iiinan-ll+1:], hyvalue[iiinan, iiinan-ll+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
+                    avalue[iiinan, iiinan-ll+1:], bvalue[iiinan, iiinan-ll+1:], rvalue[iiinan, iiinan-ll+1:], pvalue[iiinan, iiinan-ll+1:], hyvalue[iiinan, iiinan-ll+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
 
-                    avalue[iiinan+1, :iiinan+1:], balue[iiinan+1, :iiinan+1:], rvalue[iiinan+1, :iiinan+1:], pvalue[iiinan+1, :iiinan+1:], hyvalue[iiinan+1, :iiinan+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
+                    avalue[iiinan+1, :iiinan+1:], bvalue[iiinan+1, :iiinan+1:], rvalue[iiinan+1, :iiinan+1:], pvalue[iiinan+1, :iiinan+1:], hyvalue[iiinan+1, :iiinan+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
             
         else:
             raise ValueError(r"freq should be one of {season, year}")
     except ValueError as e:
         print(repr(e))
-    delete(x_season, y_season, x_nseason, y_nseason, nyear, xsea, ysea, x_tmp, y_tmp, tmp_time)
+    del(x_season, y_season, x_nseason, y_nseason, nyear, xsea, ysea, x_tmp, y_tmp, tmp_time)
     return(avalue, bvalue, rvalue, pvalue, hyvalue)
         
 
