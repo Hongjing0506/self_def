@@ -229,7 +229,7 @@ def SAM(v):
     v850_weighted_mean = v850.weighted(weights).mean(("lon", "lat"), skipna=True)
     v200_weighted_mean = v200.weighted(weights).mean(("lon", "lat"), skipna=True)
     # sam = standardize(rmmean(v850_weighted_mean) - rmmean(v200_weighted_mean))
-    sam = v850 - v200
+    sam = v850_weighted_mean - v200_weighted_mean
     del (
         lon,
         lat,
@@ -271,7 +271,7 @@ def SEAM(u):
     u2_weighted_mean = u2.weighted(weights2).mean(("lon", "lat"), skipna=True)
 
     # seam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
-    seam = u1 - u2
+    seam = u1_weighted_mean - u2_weighted_mean
     del (
         lon,
         lat,
@@ -315,7 +315,7 @@ def EAM(u):
     u2_weighted_mean = u2.weighted(weights2).mean(("lon", "lat"), skipna=True)
 
     # eam = standardize(rmmean(u1_weighted_mean) - rmmean(u2_weighted_mean))
-    eam = u1 - u2
+    eam = u1_weighted_mean - u2_weighted_mean
 
     del (
         lon,
@@ -454,10 +454,18 @@ def mon_to_season3D(da):
 
 
 def leadlag_reg(x, y, freq, ll):
-    if freq == "season":
-        rvalue = np.zeros((4, 2 * ll + 1))
-        pvalue = np.zeros((4, 2 * ll + 1))
-        trvalue = np.zeros((4, 2 * ll + 1))
+    try:
+        if freq == "season":
+            avalue = np.zeros((4, 2 * ll + 4))
+            bvalue = np.zeros((4, 2 * ll + 4))
+            rvalue = np.zeros((4, 2 * ll + 4))
+            pvalue = np.zeros((4, 2 * ll + 4))
+            hyvalue = np.zeros((4, 2 * ll + 4))
+            
+        else:
+            raise ValueError(r"freq should be one of {season}")
+    except ValueError as e:
+        print(repr(e))
 
 
 # %%
