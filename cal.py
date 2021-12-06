@@ -452,7 +452,15 @@ def mon_to_season3D(da):
     del (time, level, lat, lon, nyear, year, timesel, season, temp)
     return nda
 
-
+'''
+description: 用于计算超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan
+param {*} x
+param {*} y
+param {*} freq
+param {*} ll
+param {*} inan
+return {*}
+'''
 def leadlag_reg(x, y, freq, ll, inan):
     try:
         if freq == "season":
@@ -506,6 +514,143 @@ def leadlag_reg(x, y, freq, ll, inan):
     return(avalue, bvalue, rvalue, pvalue, hyvalue)
         
 
+'''
+description: 用于计算滑动超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan， window表示滑动窗口的长度
+param {*} x
+param {*} y
+param {*} freq
+param {*} ll
+param {*} inan
+param {*} window
+return {*}
+'''
+def leadlag_reg_rolling(x, y, freq, ll, inan, window):
+    try:
+        if freq == "season":
+            x.transpose("season", "time")
+            y.transpose("season", "time")
+            x_season = x.coords["season"]
+            y_season = y.coords["season"]
+            x_nseason = x_season.shape[0]
+            y_nseason = y_season.shape[0]
+            nyear = x.coords["time"].shape[0]
+            if ll != y_nseason:
+                raise ValueError(
+                    "ll should be less equal to the number of season in y}"
+                )
+            # elif ll == y_nseason:
+            #     tmp = y_nseason
+            # elif ll < y_nseason:
+            #     tmp = ll
+            avalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
+            )
+            bvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
+            )
+            rvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
+            )
+            pvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
+            )
+            hyvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
+            )
+            tmp_time = np.arange(1, 41, 1)
+            for xsea in np.arange(0, x_nseason, 1):
+                # calculate the lead-lag correlation of present year
+                for ysea in np.arange(0, ll, 1):
+                    for nx in np.arange(0, nyear - window + 1, 1):
+                        (
+                            avalue[xsea, ll + ysea, nx],
+                            bvalue[xsea, ll + ysea, nx],
+                            rvalue[xsea, ll + ysea, nx],
+                            pvalue[xsea, ll + ysea, nx],
+                            hyvalue[xsea, ll + ysea, nx],
+                        ) = dim_linregress(
+                            x[xsea, nx : nx + window], y[ysea, nx : nx + window]
+                        )
+
+                        (
+                            avalue[xsea, ysea, 0],
+                            bvalue[xsea, ysea, 0],
+                            rvalue[xsea, ysea, 0],
+                            pvalue[xsea, ysea, 0],
+                            hyvalue[xsea, ysea, 0],
+                        ) = (np.nan, np.nan, np.nan, np.nan, np.nan)
+
+                        (
+                            avalue[xsea, 2 * ll + ysea, nx],
+                            bvalue[xsea, 2 * ll + ysea, nx],
+                            rvalue[xsea, 2 * ll + ysea, nx],
+                            pvalue[xsea, 2 * ll + ysea, nx],
+                            hyvalue[xsea, 2 * ll + ysea, nx],
+                        ) = (np.nan, np.nan, np.nan, np.nan, np.nan)
+
+                    for nx in np.arange(0, nyear - window, 1):
+                        # calculate the lead correlation of last year
+                        x_tmp = x[:, 1:]
+                        y_tmp = y[:, :-1]
+                        x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                        (
+                            avalue[xsea, ysea, nx + 1],
+                            bvalue[xsea, ysea, nx + 1],
+                            rvalue[xsea, ysea, nx + 1],
+                            pvalue[xsea, ysea, nx + 1],
+                            hyvalue[xsea, ysea, nx + 1],
+                        ) = dim_linregress(
+                            x_tmp[xsea, nx : nx + window], y_tmp[ysea, nx : nx + window]
+                        )
+                        # calculate the lag correlation of next year
+                        x_tmp = x[:, :-1]
+                        y_tmp = y[:, 1:]
+                        x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                        (
+                            avalue[xsea, 2 * ll + ysea, nx],
+                            bvalue[xsea, 2 * ll + ysea, nx],
+                            rvalue[xsea, 2 * ll + ysea, nx],
+                            pvalue[xsea, 2 * ll + ysea, nx],
+                            hyvalue[xsea, 2 * ll + ysea, nx],
+                        ) = dim_linregress(
+                            x_tmp[xsea, nx : nx + window], y_tmp[ysea, nx : nx + window]
+                        )
+
+            if inan == True:
+                for iiinan in np.arange(0, x_nseason - 1, 1):
+                    (
+                        avalue[iiinan, iiinan - ll + 1 :, :],
+                        bvalue[iiinan, iiinan - ll + 1 :, :],
+                        rvalue[iiinan, iiinan - ll + 1 :, :],
+                        pvalue[iiinan, iiinan - ll + 1 :, :],
+                        hyvalue[iiinan, iiinan - ll + 1 :, :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan)
+
+                    (
+                        avalue[iiinan + 1, : iiinan + 1 :, :],
+                        bvalue[iiinan + 1, : iiinan + 1 :, :],
+                        rvalue[iiinan + 1, : iiinan + 1 :, :],
+                        pvalue[iiinan + 1, : iiinan + 1 :, :],
+                        hyvalue[iiinan + 1, : iiinan + 1 :, :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan)
+
+        else:
+            raise ValueError(r"freq should be one of {season, year}")
+    except ValueError as e:
+        print(repr(e))
+    del (
+        x_season,
+        y_season,
+        x_nseason,
+        y_nseason,
+        nyear,
+        xsea,
+        ysea,
+        x_tmp,
+        y_tmp,
+        tmp_time,
+    )
+    return (avalue, bvalue, rvalue, pvalue, hyvalue)
 
 # %%
 
