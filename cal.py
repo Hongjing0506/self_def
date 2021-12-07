@@ -66,8 +66,8 @@ def p_time(data, mon_s, mon_end, meanon):
 description: 
     本函数用于将需要的月份挑选出来，并存储为月份x年份xlatxlon的形式
 param {*} data
-param {*} mon_s
-param {*} mon_e
+param {integer} mon_s
+param {integer} mon_e
 return {*}
 """
 
@@ -456,9 +456,9 @@ def mon_to_season3D(da):
 description: 用于计算超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan
 param {*} x
 param {*} y
-param {*} freq
-param {*} ll
-param {*} inan
+param {str} freq: "season"
+param {integer} ll
+param {bool} inan
 return {*}
 '''
 def leadlag_reg(x, y, freq, ll, inan):
@@ -518,10 +518,10 @@ def leadlag_reg(x, y, freq, ll, inan):
 description: 用于计算滑动超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan， window表示滑动窗口的长度
 param {*} x
 param {*} y
-param {*} freq
-param {*} ll
-param {*} inan
-param {*} window
+param {str} freq: "season"
+param {integer} ll
+param {bool} inan
+param {integer} window
 return {*}
 '''
 def leadlag_reg_rolling(x, y, freq, ll, inan, window):
@@ -654,10 +654,10 @@ def leadlag_reg_rolling(x, y, freq, ll, inan, window):
 
 '''
 description: 计算无偏估计的sigma^2
-param {*} n1: the number of array1
-param {*} n2: the number of array2
-param {*} s1: standard deviation of array1
-param {*} s2: standard deviation of array2
+param {float/integer} n1: the number of array1
+param {float/integer} n2: the number of array2
+param {float} s1: standard deviation of array1
+param {float} s2: standard deviation of array2
 return {*}
 '''
 def sigma2_unbias(n1, n2, s1, s2):
@@ -666,16 +666,98 @@ def sigma2_unbias(n1, n2, s1, s2):
 
 '''
 description: 计算t统计量
-param {*} n1: the number of array1
-param {*} n2: the number of array2
-param {*} m1: mean of array1
-param {*} m2: mean of array2
-param {*} sigma: unbiased estimation of two arrays
+param {float/integer} n1: the number of array1
+param {float/integer} n2: the number of array2
+param {float} m1: mean of array1
+param {float} m2: mean of array2
+param {float} sigma: unbiased estimation of two arrays
 return {*}
 '''
 def t_cal(n1, n2, m1, m2, sigma):
     t = (m1-m2)/sigma/np.sqrt(1/n1+1/n2)
     return t
+
+'''
+description: 计算平均值和标准差（仅限xarray变量）
+param {*} x: array
+param {str} dim: 指定计算的维度名称
+return {*}
+'''
+def fund_cal(x,dim):
+    s = x.std(dim=dim, skipna = True)
+    m = x.mean(dim=dim, skipna = True)
+    return s,m
+
+
+
+'''
+description: 计算滑动t检验的t统计量以及对应置信度水平下的t临界值（已进行边界平滑处理）
+param {*} da：需要滑动的序列
+param {str} dim：需要滑动的维度名
+param {integer} window：滑动t检验基准点前后两子序列的长度
+param {float} clevel：t临界值对应的置信度（如0.95）
+return {*}
+'''
+def rolling_t_test(da, dim, window, clevel):
+    from scipy.stats import t
+    da = da.dropna(dim=dim)
+    n = da.coords[dim].shape[0]
+    n_dim = da.coords[dim]
+    #   对边界进行了处理，在左右边界处，n1 != n2
+    #   ti是最终输出的t统计量，为了和da保持相同的长度，将无法计算的边界部分设置为np.nan
+    ti = np.zeros(n)
+    ti[0:2] = np.nan
+    ti[-1] = np.nan
+    #   tlim是指定confidence level情况下的t临界值
+    tlim = np.zeros(n)
+    tlim[0:2] = np.nan
+    ti[-1] = np.nan
+    tlim[-1] = np.nan
+    #   先计算左右边界
+    for li in np.arange(2, window):
+        #   左边界
+        x1 = da[0:li]
+        x2 = da[li:li+window]
+        n1 = li
+        n2 = window
+        s1, m1 = fund_cal(x1, dim)
+        s2, m2 = fund_cal(x2, dim)
+        s_tmp = sigma2_unbias(n1, n2, s1, s2)
+        t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
+        ti[li] = t_tmp
+        tlim[li] = t.ppf(0.5+0.5*clevel, n1+n2-2)
+        
+        #   右边界
+        x1 = da[-li-window:-li]
+        x2 = da[-li:]
+        n1 = window
+        n2 = li
+        s1, m1 = fund_cal(x1, dim)
+        s2, m2 = fund_cal(x2, dim)
+        s_tmp = sigma2_unbias(n1, n2, s1, s2)
+        t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
+        ti[-li] = t_tmp
+        tlim[-li] = t.ppf(0.5+0.5*clevel, n1+n2-2)
+        
+    #   中间段 n1=n2=window
+    for i in np.arange(0, n-2*window+1):
+        x1 = da[i:i+window]
+        x2 = da[i+window:i+2*window]
+        n1 = window
+        n2 = window
+        s1, m1 = fund_cal(x1, dim)
+        s2, m2 = fund_cal(x2, dim)
+        s_tmp = sigma2_unbias(n1, n2, s1, s2)
+        t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
+        ti[i+window] = t_tmp
+    #   calculate tlim
+        tlim[i+window] = t.ppf(0.5+0.5*clevel, n1+n2-2)
+    
+    
+    del(n, li, x1, x2, n1, n2, s1, s2, m1, m2, s_tmp, t_tmp, i)
+    t_test = xr.DataArray(ti, coords=[n_dim], dims=['time'])
+    t_lim = xr.DataArray(tlim, coords=[n_dim], dims=['time'])
+    return t_test, t_lim
 # %%
 
 # print(np.reshape(x, (4, 42), order="F"))
