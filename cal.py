@@ -654,8 +654,8 @@ def leadlag_reg_rolling(x, y, freq, ll, inan, window):
 
 '''
 description: 计算无偏估计的sigma^2
-param {*} n1: number of array1
-param {*} n2: number of array2
+param {*} n1: the number of array1
+param {*} n2: the number of array2
 param {*} s1: standard deviation of array1
 param {*} s2: standard deviation of array2
 return {*}
@@ -664,6 +664,15 @@ def sigma2_unbias(n1, n2, s1, s2):
     sigma2 = np.sqrt(((n1-1)*s1**2+(n2-1)*s2**2)/(n1+n2-2))
     return sigma2
 
+'''
+description: 计算t统计量
+param {*} n1: the number of array1
+param {*} n2: the number of array2
+param {*} m1: mean of array1
+param {*} m2: mean of array2
+param {*} sigma: unbiased estimation of two arrays
+return {*}
+'''
 def t_cal(n1, n2, m1, m2, sigma):
     t = (m1-m2)/sigma/np.sqrt(1/n1+1/n2)
     return t
