@@ -29,6 +29,7 @@ from matplotlib.ticker import MultipleLocator
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.stats import t
 
 """
 description: 
@@ -490,7 +491,8 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                 for ysea in np.arange(0, ll, 1):
                     avalue[xsea,ll+ysea], bvalue[xsea,ll+ysea], rvalue[xsea,ll+ysea], pvalue[xsea,ll+ysea], hyvalue[xsea,ll+ysea] = dim_linregress(x[xsea,:],y[ysea,:])
                     neff = eff_DOF(x[xsea,:], y[ysea,:], "2", 20)
-                    reff[xsea,ll+ysea] = t.ppf(0.5+0.5*clevel, neff)
+                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    reff[xsea,ll+ysea] = cal_rlim(t_lim, neff)
                     
                     #calculate the lead correlation of last year
                     x_tmp = x[:, 1:]
@@ -498,7 +500,8 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,ysea], bvalue[xsea,ysea], rvalue[xsea,ysea], pvalue[xsea,ysea], hyvalue[xsea,ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
                     neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
-                    reff[xsea,ysea] = t.ppf(0.5+0.5*clevel, neff)
+                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    reff[xsea,ysea] = cal_rlim(t_lim, neff)
                     
                     #calculate the lag correlation of next year
                     x_tmp = x[:, :-1]
@@ -506,7 +509,8 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,2*ll+ysea], bvalue[xsea,2*ll+ysea], rvalue[xsea,2*ll+ysea], pvalue[xsea,2*ll+ysea], hyvalue[xsea,2*ll+ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
                     neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
-                    reff[xsea,2*ll+ysea] = t.ppf(0.5+0.5*clevel, neff)
+                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    reff[xsea,2*ll+ysea] = cal_rlim(t_lim, neff)
                     
                 
             if inan == True:
@@ -829,6 +833,10 @@ def eff_DOF(x, y, way, l):
         print(neff)
         
     return neff
+
+def cal_rlim(talpha, n):
+    rlim = np.sqrt(talpha**2/(n-2.0+talpha**2))
+    return rlim
 # %%
 
 # print(np.reshape(x, (4, 42), order="F"))
