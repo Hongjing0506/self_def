@@ -33,7 +33,7 @@ from scipy import stats
 """
 description: 
     (已废弃，请使用p_month)
-    该函数用于选取数据中每一年的相应月份，并可选地计算每一年这些相应月份的平均值；例如：p_time(data, 6, 8, False)将选取数据中每一年的JJA，但不计算每年JJA的平均值；p_time(data, 6, 8, True)则在选取数据中每一年的JJA后计算每年JJA的平均值；
+    该函数用于选取数据中每一年的相应月份，并可选地计算每一年这些相应月份的平均值；例如: p_time(data, 6, 8, False)将选取数据中每一年的JJA，但不计算每年JJA的平均值；p_time(data, 6, 8, True)则在选取数据中每一年的JJA后计算每年JJA的平均值；
 param {*} data
     the data should be xarray dataset or dataarray
 param {float} mon_s
@@ -99,11 +99,11 @@ def filplonlat(ds):
     # To facilitate data subsetting
     # print(da.attrs)
     """
-    print(
-        f'\n\nBefore flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].'
-    )
-    ds["lon"] = ((ds["lon"] + 180) % 360) - 180
-    # Sort lons, so that subset operations end up being simpler.
+    print(
+        f'\n\nBefore flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].'
+    )
+    ds["lon"] = ((ds["lon"] + 180) % 360) - 180
+    # Sort lons, so that subset operations end up being simpler.
     ds = ds.sortby("lon")
     """
     ds = ds.sortby("lat", ascending=True)
@@ -453,15 +453,16 @@ def mon_to_season3D(da):
     return nda
 
 '''
-description: 用于计算超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan
+description: 用于计算超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan, clevel为置信度水平
 param {*} x
 param {*} y
 param {str} freq: "season"
 param {integer} ll
 param {bool} inan
+param {float} clevel
 return {*}
 '''
-def leadlag_reg(x, y, freq, ll, inan):
+def leadlag_reg(x, y, freq, ll, inan, clevel):
     try:
         if freq == "season":
             x.transpose("season", "time")
@@ -482,36 +483,44 @@ def leadlag_reg(x, y, freq, ll, inan):
             rvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
             pvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
             hyvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            tmp_time = np.arange(1,41,1)
+            reff = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
+            tmp_time = np.arange(1,nyear,1)
             for xsea in np.arange(0, x_nseason, 1):
                 #calculate the lead-lag correlation of present year
                 for ysea in np.arange(0, ll, 1):
                     avalue[xsea,ll+ysea], bvalue[xsea,ll+ysea], rvalue[xsea,ll+ysea], pvalue[xsea,ll+ysea], hyvalue[xsea,ll+ysea] = dim_linregress(x[xsea,:],y[ysea,:])
+                    neff = eff_DOF(x[xsea,:], y[ysea,:], "2", 20)
+                    reff[xsea,ll+ysea] = t.ppf(0.5+0.5*clevel, neff)
                     
                     #calculate the lead correlation of last year
                     x_tmp = x[:, 1:]
                     y_tmp = y[:, :-1]
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,ysea], bvalue[xsea,ysea], rvalue[xsea,ysea], pvalue[xsea,ysea], hyvalue[xsea,ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
+                    neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
+                    reff[xsea,ysea] = t.ppf(0.5+0.5*clevel, neff)
                     
                     #calculate the lag correlation of next year
                     x_tmp = x[:, :-1]
                     y_tmp = y[:, 1:]
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,2*ll+ysea], bvalue[xsea,2*ll+ysea], rvalue[xsea,2*ll+ysea], pvalue[xsea,2*ll+ysea], hyvalue[xsea,2*ll+ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
+                    neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
+                    reff[xsea,2*ll+ysea] = t.ppf(0.5+0.5*clevel, neff)
+                    
                 
             if inan == True:
                 for iiinan in np.arange(0,x_nseason-1,1):
-                    avalue[iiinan, iiinan-ll+1:], bvalue[iiinan, iiinan-ll+1:], rvalue[iiinan, iiinan-ll+1:], pvalue[iiinan, iiinan-ll+1:], hyvalue[iiinan, iiinan-ll+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
+                    avalue[iiinan, iiinan-ll+1:], bvalue[iiinan, iiinan-ll+1:], rvalue[iiinan, iiinan-ll+1:], pvalue[iiinan, iiinan-ll+1:], hyvalue[iiinan, iiinan-ll+1:], reff[iiinan, iiinan-ll+1:] = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
 
-                    avalue[iiinan+1, :iiinan+1:], bvalue[iiinan+1, :iiinan+1:], rvalue[iiinan+1, :iiinan+1:], pvalue[iiinan+1, :iiinan+1:], hyvalue[iiinan+1, :iiinan+1:] = np.nan, np.nan, np.nan, np.nan, np.nan
+                    avalue[iiinan+1, :iiinan+1:], bvalue[iiinan+1, :iiinan+1:], rvalue[iiinan+1, :iiinan+1:], pvalue[iiinan+1, :iiinan+1:], hyvalue[iiinan+1, :iiinan+1:], reff[iiinan+1, :iiinan+1:] = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             
         else:
             raise ValueError(r"freq should be one of {season, year}")
     except ValueError as e:
         print(repr(e))
-    del(x_season, y_season, x_nseason, y_nseason, nyear, xsea, ysea, x_tmp, y_tmp, tmp_time)
-    return(avalue, bvalue, rvalue, pvalue, hyvalue)
+    del(x_season, y_season, x_nseason, y_nseason, nyear, xsea, ysea, x_tmp, y_tmp, tmp_time, neff)
+    return(avalue, bvalue, rvalue, pvalue, hyvalue, reff)
         
 
 '''
@@ -557,7 +566,7 @@ def leadlag_reg_rolling(x, y, freq, ll, inan, window):
             hyvalue = np.zeros(
                 (x_nseason, 2 * ll + x_nseason, nyear - (window - 1)), dtype=np.float64
             )
-            tmp_time = np.arange(1, 41, 1)
+            tmp_time = np.arange(1, nyear, 1)
             for xsea in np.arange(0, x_nseason, 1):
                 # calculate the lead-lag correlation of present year
                 for ysea in np.arange(0, ll, 1):
@@ -692,10 +701,10 @@ def fund_cal(x,dim):
 
 '''
 description: 计算滑动t检验的t统计量以及对应置信度水平下的t临界值（已进行边界平滑处理）
-param {*} da：需要滑动的序列
-param {str} dim：需要滑动的维度名
-param {integer} window：滑动t检验基准点前后两子序列的长度
-param {float} clevel：t临界值对应的置信度（如0.95）
+param {*} da: 需要滑动的序列
+param {str} dim: 需要滑动的维度名
+param {integer} window: 滑动t检验基准点前后两子序列的长度
+param {float} clevel: t临界值对应的置信度（如0.95）
 return {*}
 '''
 def rolling_t_test(da, dim, window, clevel):
