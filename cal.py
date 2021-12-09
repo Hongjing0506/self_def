@@ -824,7 +824,7 @@ def eff_DOF(x, y, way, l):
             B2_tmp = y[:-i]
             tmp1 = stats.linregress(A1_tmp, A2_tmp)[2]
             tmp2 = stats.linregress(B1_tmp, B2_tmp)[2]
-            print(tmp1, tmp2)
+            # print(tmp1, tmp2)
             tau += tmp1*tmp2
         #   contemporaneous correlation
         tau += 1.0
