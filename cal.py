@@ -758,6 +758,68 @@ def rolling_t_test(da, dim, window, clevel):
     t_test = xr.DataArray(ti, coords=[n_dim], dims=['time'])
     t_lim = xr.DataArray(tlim, coords=[n_dim], dims=['time'])
     return t_test, t_lim
+
+'''
+description: 计算有效自由度
+            calculation of effective number of freedom
+param {array} x
+param {array} y: only used in way"2"
+param {str} way:"0": for Leith(1973) method;
+                "1": for Bretherton(1999) method;
+                "2": for correlation coeffitient calculation (this method is introduced in class)
+param {integer} l: for way"1", l should be 1 or 2, which means the times of lag correlation calculation;
+                    for way"2", l should be less than len(x) - 2; It means the times of lead-lag correlation calculation
+return {integer} neff
+'''
+def eff_DOF(x, y, way, l):
+    num = np.shape(x)[0]
+    #   calculate effective degree of freedom number with Leith(1973) method
+    if way == "0":
+        A1_tmp = x[:-1]
+        A2_tmp = x[1:]
+        tau = stats.linregress(A1_tmp, A2_tmp)[2]
+        neff = int(-0.5*np.log(tau)*num)
+    #   calculate with Bretherton(1999) method
+    elif way == "1":
+        tau = np.ones(2)
+        for i in np.arange(-l, 0, 1):
+            A1_tmp = x[:i]
+            A2_tmp = x[-i:]
+            print(A1_tmp, A2_tmp)
+            tau[i+2] = stats.linregress(A1_tmp, A2_tmp)[2]
+        neff = int(num*(1-tau[0]*tau[1])/(1.0+tau[0]*tau[1]))
+    #   the calculation method of effective DOF in the calculation of correlation coefficient
+    #   if using this method, then should import two data arrays that are used to calculate the correlation coefficient 
+    elif way == "2":
+        #   calculate the lead-lag correlation of this two array
+        tau = 0.0
+        #   lead
+        for i in np.arange(-l, 0, 1):
+            A1_tmp = x[:i]
+            A2_tmp = x[-i:]
+            B1_tmp = y[:i]
+            B2_tmp = y[-i:]
+            tmp1 = stats.linregress(A1_tmp, A2_tmp)[2]
+            tmp2 = stats.linregress(B1_tmp, B2_tmp)[2]
+            print(tmp1, tmp2)
+            tau += tmp1*tmp2
+        #   lag
+        for i in np.arange(1, l+1, 1):
+            A1_tmp = x[i:]
+            A2_tmp = x[:-i]
+            B1_tmp = y[i:]
+            B2_tmp = y[:-i]
+            tmp1 = stats.linregress(A1_tmp, A2_tmp)[2]
+            tmp2 = stats.linregress(B1_tmp, B2_tmp)[2]
+            print(tmp1, tmp2)
+            tau += tmp1*tmp2
+        #   contemporaneous correlation
+        tau += 1.0
+
+        neff = int(num/tau)
+        print(neff)
+        
+    return neff
 # %%
 
 # print(np.reshape(x, (4, 42), order="F"))
