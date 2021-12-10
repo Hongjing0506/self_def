@@ -792,15 +792,16 @@ def eff_DOF(x, y, way, l):
         A2_tmp = x[1:]
         tau = stats.linregress(A1_tmp, A2_tmp)[2]
         neff = int(-0.5*np.log(tau)*num)
+        del(num, A1_tmp, A2_tmp, tau)
     #   calculate with Bretherton(1999) method
     elif way == "1":
         tau = np.ones(2)
         for i in np.arange(-l, 0, 1):
             A1_tmp = x[:i]
             A2_tmp = x[-i:]
-            print(A1_tmp, A2_tmp)
             tau[i+2] = stats.linregress(A1_tmp, A2_tmp)[2]
         neff = int(num*(1-tau[0]*tau[1])/(1.0+tau[0]*tau[1]))
+        del(A1_tmp, A2_tmp, tau)
     #   the calculation method of effective DOF in the calculation of correlation coefficient
     #   if using this method, then should import two data arrays that are used to calculate the correlation coefficient 
     elif way == "2":
@@ -829,9 +830,9 @@ def eff_DOF(x, y, way, l):
         #   contemporaneous correlation
         tau += 1.0
 
-        neff = int(num/tau)
+        neff = int(num/tau) - 2
         print(neff)
-        
+        del(num, A1_tmp, A2_tmp, B1_tmp, B2_tmp, tmp1, tmp2, tau)
     return neff
 
 def cal_rlim(talpha, n):
