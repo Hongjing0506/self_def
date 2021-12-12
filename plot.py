@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2021-12-12 21:49:23
+LastEditTime: 2021-12-12 21:53:07
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -47,6 +47,5 @@ def sign_check_star(ax, r, rlim, xpos, ypos, size):
     y = np.array(rlim)
     i_pass, j_pass = np.where(np.abs(x) >= y)
     for i,j in zip(i_pass,j_pass):
-        print(i,j)
         ax.text(j+xpos, i+ypos, "*", size=size)
     del(x, y, i_pass, j_pass, i, j)
