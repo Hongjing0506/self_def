@@ -454,13 +454,13 @@ def mon_to_season3D(da):
     return nda
 
 '''
-description: 用于计算超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan, clevel为置信度水平
+description: 用于计算超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan, clevel[0]为是否需要计算有效自由度, clevel[1]为置信度水平
 param {*} x
 param {*} y
 param {str} freq: "season"
 param {integer} ll
 param {bool} inan
-param {float} clevel
+param {list} clevel
 return {*}
 '''
 def leadlag_reg(x, y, freq, ll, inan, clevel):
@@ -490,8 +490,11 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                 #calculate the lead-lag correlation of present year
                 for ysea in np.arange(0, ll, 1):
                     avalue[xsea,ll+ysea], bvalue[xsea,ll+ysea], rvalue[xsea,ll+ysea], pvalue[xsea,ll+ysea], hyvalue[xsea,ll+ysea] = dim_linregress(x[xsea,:],y[ysea,:])
-                    neff = eff_DOF(x[xsea,:], y[ysea,:], "2", 20)
-                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    if clevel[0] == True:
+                        neff = eff_DOF(x[xsea,:], y[ysea,:], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x[xsea, :])[0]
+                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
                     reff[xsea,ll+ysea] = cal_rlim(t_lim, neff)
                     
                     #calculate the lead correlation of last year
@@ -499,8 +502,11 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                     y_tmp = y[:, :-1]
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,ysea], bvalue[xsea,ysea], rvalue[xsea,ysea], pvalue[xsea,ysea], hyvalue[xsea,ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
-                    neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
-                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea,:])[0]
+                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
                     reff[xsea,ysea] = cal_rlim(t_lim, neff)
                     
                     #calculate the lag correlation of next year
@@ -508,8 +514,11 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                     y_tmp = y[:, 1:]
                     x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
                     avalue[xsea,2*ll+ysea], bvalue[xsea,2*ll+ysea], rvalue[xsea,2*ll+ysea], pvalue[xsea,2*ll+ysea], hyvalue[xsea,2*ll+ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
-                    neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "2", 20)
-                    t_lim = t.ppf(0.5+0.5*clevel, neff)
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x[sea, :])[0]
+                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
                     reff[xsea,2*ll+ysea] = cal_rlim(t_lim, neff)
                     
                 
@@ -795,13 +804,28 @@ def eff_DOF(x, y, way, l):
         del(num, A1_tmp, A2_tmp, tau)
     #   calculate with Bretherton(1999) method
     elif way == "1":
-        tau = np.ones(2)
-        for i in np.arange(-l, 0, 1):
-            A1_tmp = x[:i]
-            A2_tmp = x[-i:]
-            tau[i+2] = stats.linregress(A1_tmp, A2_tmp)[2]
-        neff = int(num*(1-tau[0]*tau[1])/(1.0+tau[0]*tau[1]))
-        del(A1_tmp, A2_tmp, tau)
+        if l == 1:
+            #   calculate the one order ESS for x array
+            A1_tmp = x[:-1]
+            A2_tmp = x[1:]
+            tau = stats.linregress(A1_tmp, A2_tmp)[2]
+            neff = int(num*(1-tau)/(1+tau))
+            print(neff)
+            del(A1_tmp, A2_tmp, tau)
+        elif l == 2:
+            #   calculate the two order ESS for x&y array
+            tau = np.ones(2)
+            A1_tmp = x[:-1]
+            A2_tmp = x[1:]
+            tau[0] = stats.linregress(A1_tmp, A2_tmp)[2]
+            
+            B1_tmp = y[:-1]
+            B2_tmp = y[1:]
+            tau[1] = stats.linregress(B1_tmp, B2_tmp)[2]
+            
+            neff = int(num*(1-tau[0]*tau[1])/(1.0+tau[0]*tau[1]))
+            print(neff)
+            del(A1_tmp, A2_tmp, B1_tmp, B2_tmp, tau)
     #   the calculation method of effective DOF in the calculation of correlation coefficient
     #   if using this method, then should import two data arrays that are used to calculate the correlation coefficient 
     elif way == "2":
@@ -831,7 +855,7 @@ def eff_DOF(x, y, way, l):
         tau += 1.0
 
         neff = int(num/tau) - 2
-        print(neff)
+        print("tau = ", tau, "neff = ", neff)
         del(num, A1_tmp, A2_tmp, B1_tmp, B2_tmp, tmp1, tmp2, tau)
     return neff
 
