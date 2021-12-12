@@ -517,7 +517,7 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
                     if clevel[0] == True:
                         neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "1", 2)
                     elif clevel[0] == False:
-                        neff = np.shape(x[sea, :])[0]
+                        neff = np.shape(x_tmp[xsea, :])[0]
                     t_lim = t.ppf(0.5+0.5*clevel[1], neff)
                     reff[xsea,2*ll+ysea] = cal_rlim(t_lim, neff)
                     
