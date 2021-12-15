@@ -412,13 +412,55 @@ def mon_to_season1D(da):
 
 
 """
-description: 用于将3D的月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
+description: 用于将3D(time x lat x lon)的月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
 param {*} da
 return {*}
 """
 
 
 def mon_to_season3D(da):
+    da.transpose("time", "lat", "lon")
+    time = da.coords["time"]
+    lat = da.coords["lat"]
+    lon = da.coords["lon"]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
+    year = pd.date_range(
+        start=str(pd.to_datetime(time).year[1]),
+        end=str(pd.to_datetime(time).year[-1] - 1),
+        freq="AS",
+    )
+    try:
+        if pd.to_datetime(time).month[-1] == 2:
+            timesel = time[2:]
+        elif pd.to_datetime(time).month[-1] == 12:
+            timesel = time[2:-10]
+        else:
+            raise ValueError("the time of variable should be end in FEB or DEC")
+    except ValueError as e:
+        print("error: ", repr(e))
+    da = da.sel(time=timesel).coarsen(time=3).mean()
+    season = ["MAM", "JJA", "SON", "DJF"]
+    temp = np.array(da)
+    temp = np.reshape(
+        temp, (4, nyear, lat.shape[0], lon.shape[0]), order="F"
+    )
+    nda = xr.DataArray(
+        temp,
+        coords=[season, year, lat, lon],
+        dims=["season", "time", "lat", "lon"],
+    )
+    del (time, lat, lon, nyear, year, timesel, season, temp)
+    return nda
+
+
+"""
+description: 用于将4D(time x level x lat x lon)的月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
+param {*} da
+return {*}
+"""
+
+
+def mon_to_season4D(da):
     da.transpose("time", "level", "lat", "lon")
     time = da.coords["time"]
     level = da.coords["level"]
@@ -453,7 +495,8 @@ def mon_to_season3D(da):
     del (time, level, lat, lon, nyear, year, timesel, season, temp)
     return nda
 
-'''
+
+"""
 description: 用于计算超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan, clevel[0]为是否需要计算有效自由度, clevel[1]为置信度水平
 param {*} x
 param {*} y
@@ -462,7 +505,9 @@ param {integer} ll
 param {bool} inan
 param {list} clevel
 return {*}
-'''
+"""
+
+
 def leadlag_reg(x, y, freq, ll, inan, clevel):
     try:
         if freq == "season":
@@ -474,69 +519,114 @@ def leadlag_reg(x, y, freq, ll, inan, clevel):
             y_nseason = y_season.shape[0]
             nyear = x.coords["time"].shape[0]
             if ll != y_nseason:
-                raise ValueError("ll should be less equal to the number of season in y}")
+                raise ValueError(
+                    "ll should be less equal to the number of season in y}"
+                )
             # elif ll == y_nseason:
             #     tmp = y_nseason
             # elif ll < y_nseason:
             #     tmp = ll
-            avalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            bvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            rvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            pvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            hyvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            reff = np.zeros((x_nseason, 2 * ll + x_nseason), dtype = np.float64)
-            tmp_time = np.arange(1,nyear,1)
+            avalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            bvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            rvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            pvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            hyvalue = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            reff = np.zeros((x_nseason, 2 * ll + x_nseason), dtype=np.float64)
+            tmp_time = np.arange(1, nyear, 1)
             for xsea in np.arange(0, x_nseason, 1):
-                #calculate the lead-lag correlation of present year
+                # calculate the lead-lag correlation of present year
                 for ysea in np.arange(0, ll, 1):
-                    avalue[xsea,ll+ysea], bvalue[xsea,ll+ysea], rvalue[xsea,ll+ysea], pvalue[xsea,ll+ysea], hyvalue[xsea,ll+ysea] = dim_linregress(x[xsea,:],y[ysea,:])
+                    (
+                        avalue[xsea, ll + ysea],
+                        bvalue[xsea, ll + ysea],
+                        rvalue[xsea, ll + ysea],
+                        pvalue[xsea, ll + ysea],
+                        hyvalue[xsea, ll + ysea],
+                    ) = dim_linregress(x[xsea, :], y[ysea, :])
                     if clevel[0] == True:
-                        neff = eff_DOF(x[xsea,:], y[ysea,:], "1", 2)
+                        neff = eff_DOF(x[xsea, :], y[ysea, :], "1", 2)
                     elif clevel[0] == False:
                         neff = np.shape(x[xsea, :])[0]
-                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
-                    reff[xsea,ll+ysea] = cal_rlim(t_lim, neff)
-                    
-                    #calculate the lead correlation of last year
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ll + ysea] = cal_rlim(t_lim, neff)
+
+                    # calculate the lead correlation of last year
                     x_tmp = x[:, 1:]
                     y_tmp = y[:, :-1]
-                    x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
-                    avalue[xsea,ysea], bvalue[xsea,ysea], rvalue[xsea,ysea], pvalue[xsea,ysea], hyvalue[xsea,ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
+                    x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                    (
+                        avalue[xsea, ysea],
+                        bvalue[xsea, ysea],
+                        rvalue[xsea, ysea],
+                        pvalue[xsea, ysea],
+                        hyvalue[xsea, ysea],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :])
                     if clevel[0] == True:
-                        neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "1", 2)
-                    elif clevel[0] == False:
-                        neff = np.shape(x_tmp[xsea,:])[0]
-                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
-                    reff[xsea,ysea] = cal_rlim(t_lim, neff)
-                    
-                    #calculate the lag correlation of next year
-                    x_tmp = x[:, :-1]
-                    y_tmp = y[:, 1:]
-                    x_tmp.coords['time'], y_tmp.coords['time'] = tmp_time, tmp_time
-                    avalue[xsea,2*ll+ysea], bvalue[xsea,2*ll+ysea], rvalue[xsea,2*ll+ysea], pvalue[xsea,2*ll+ysea], hyvalue[xsea,2*ll+ysea] = dim_linregress(x_tmp[xsea, :], y_tmp[ysea,:])
-                    if clevel[0] == True:
-                        neff = eff_DOF(x_tmp[xsea,:], y_tmp[ysea,:], "1", 2)
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :], "1", 2)
                     elif clevel[0] == False:
                         neff = np.shape(x_tmp[xsea, :])[0]
-                    t_lim = t.ppf(0.5+0.5*clevel[1], neff)
-                    reff[xsea,2*ll+ysea] = cal_rlim(t_lim, neff)
-                    
-                
-            if inan == True:
-                for iiinan in np.arange(0,x_nseason-1,1):
-                    avalue[iiinan, iiinan-ll+1:], bvalue[iiinan, iiinan-ll+1:], rvalue[iiinan, iiinan-ll+1:], pvalue[iiinan, iiinan-ll+1:], hyvalue[iiinan, iiinan-ll+1:], reff[iiinan, iiinan-ll+1:] = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ysea] = cal_rlim(t_lim, neff)
 
-                    avalue[iiinan+1, :iiinan+1:], bvalue[iiinan+1, :iiinan+1:], rvalue[iiinan+1, :iiinan+1:], pvalue[iiinan+1, :iiinan+1:], hyvalue[iiinan+1, :iiinan+1:], reff[iiinan+1, :iiinan+1:] = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
-            
+                    # calculate the lag correlation of next year
+                    x_tmp = x[:, :-1]
+                    y_tmp = y[:, 1:]
+                    x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                    (
+                        avalue[xsea, 2 * ll + ysea],
+                        bvalue[xsea, 2 * ll + ysea],
+                        rvalue[xsea, 2 * ll + ysea],
+                        pvalue[xsea, 2 * ll + ysea],
+                        hyvalue[xsea, 2 * ll + ysea],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, 2 * ll + ysea] = cal_rlim(t_lim, neff)
+
+            if inan == True:
+                for iiinan in np.arange(0, x_nseason - 1, 1):
+                    (
+                        avalue[iiinan, iiinan - ll + 1 :],
+                        bvalue[iiinan, iiinan - ll + 1 :],
+                        rvalue[iiinan, iiinan - ll + 1 :],
+                        pvalue[iiinan, iiinan - ll + 1 :],
+                        hyvalue[iiinan, iiinan - ll + 1 :],
+                        reff[iiinan, iiinan - ll + 1 :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
+                    (
+                        avalue[iiinan + 1, : iiinan + 1 :],
+                        bvalue[iiinan + 1, : iiinan + 1 :],
+                        rvalue[iiinan + 1, : iiinan + 1 :],
+                        pvalue[iiinan + 1, : iiinan + 1 :],
+                        hyvalue[iiinan + 1, : iiinan + 1 :],
+                        reff[iiinan + 1, : iiinan + 1 :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
         else:
             raise ValueError(r"freq should be one of {season, year}")
     except ValueError as e:
         print(repr(e))
-    del(x_season, y_season, x_nseason, y_nseason, nyear, xsea, ysea, x_tmp, y_tmp, tmp_time, neff)
-    return(avalue, bvalue, rvalue, pvalue, hyvalue, reff)
-        
+    del (
+        x_season,
+        y_season,
+        x_nseason,
+        y_nseason,
+        nyear,
+        xsea,
+        ysea,
+        x_tmp,
+        y_tmp,
+        tmp_time,
+        neff,
+    )
+    return (avalue, bvalue, rvalue, pvalue, hyvalue, reff)
 
-'''
+
+"""
 description: 用于计算滑动超前滞后相关，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan， window表示滑动窗口的长度
 param {*} x
 param {*} y
@@ -545,7 +635,9 @@ param {integer} ll
 param {bool} inan
 param {integer} window
 return {*}
-'''
+"""
+
+
 def leadlag_reg_rolling(x, y, freq, ll, inan, window):
     try:
         if freq == "season":
@@ -674,19 +766,23 @@ def leadlag_reg_rolling(x, y, freq, ll, inan, window):
     )
     return (avalue, bvalue, rvalue, pvalue, hyvalue)
 
-'''
+
+"""
 description: 计算无偏估计的sigma^2
 param {float/integer} n1: the number of array1
 param {float/integer} n2: the number of array2
 param {float} s1: standard deviation of array1
 param {float} s2: standard deviation of array2
 return {*}
-'''
+"""
+
+
 def sigma2_unbias(n1, n2, s1, s2):
-    sigma2 = np.sqrt(((n1-1)*s1**2+(n2-1)*s2**2)/(n1+n2-2))
+    sigma2 = np.sqrt(((n1 - 1) * s1 ** 2 + (n2 - 1) * s2 ** 2) / (n1 + n2 - 2))
     return sigma2
 
-'''
+
+"""
 description: 计算t统计量
 param {float/integer} n1: the number of array1
 param {float/integer} n2: the number of array2
@@ -694,34 +790,41 @@ param {float} m1: mean of array1
 param {float} m2: mean of array2
 param {float} sigma: unbiased estimation of two arrays
 return {*}
-'''
+"""
+
+
 def t_cal(n1, n2, m1, m2, sigma):
-    t = (m1-m2)/sigma/np.sqrt(1/n1+1/n2)
+    t = (m1 - m2) / sigma / np.sqrt(1 / n1 + 1 / n2)
     return t
 
-'''
+
+"""
 description: 计算平均值和标准差（仅限xarray变量）
 param {*} x: array
 param {str} dim: 指定计算的维度名称
 return {*}
-'''
-def fund_cal(x,dim):
-    s = x.std(dim=dim, skipna = True)
-    m = x.mean(dim=dim, skipna = True)
-    return s,m
+"""
 
 
+def fund_cal(x, dim):
+    s = x.std(dim=dim, skipna=True)
+    m = x.mean(dim=dim, skipna=True)
+    return s, m
 
-'''
+
+"""
 description: 计算滑动t检验的t统计量以及对应置信度水平下的t临界值（已进行边界平滑处理）
 param {*} da: 需要滑动的序列
 param {str} dim: 需要滑动的维度名
 param {integer} window: 滑动t检验基准点前后两子序列的长度
 param {float} clevel: t临界值对应的置信度（如0.95）
 return {*}
-'''
+"""
+
+
 def rolling_t_test(da, dim, window, clevel):
     from scipy.stats import t
+
     da = da.dropna(dim=dim)
     n = da.coords[dim].shape[0]
     n_dim = da.coords[dim]
@@ -739,7 +842,7 @@ def rolling_t_test(da, dim, window, clevel):
     for li in np.arange(2, window):
         #   左边界
         x1 = da[0:li]
-        x2 = da[li:li+window]
+        x2 = da[li : li + window]
         n1 = li
         n2 = window
         s1, m1 = fund_cal(x1, dim)
@@ -747,10 +850,10 @@ def rolling_t_test(da, dim, window, clevel):
         s_tmp = sigma2_unbias(n1, n2, s1, s2)
         t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
         ti[li] = t_tmp
-        tlim[li] = t.ppf(0.5+0.5*clevel, n1+n2-2)
-        
+        tlim[li] = t.ppf(0.5 + 0.5 * clevel, n1 + n2 - 2)
+
         #   右边界
-        x1 = da[-li-window:-li]
+        x1 = da[-li - window : -li]
         x2 = da[-li:]
         n1 = window
         n2 = li
@@ -759,29 +862,29 @@ def rolling_t_test(da, dim, window, clevel):
         s_tmp = sigma2_unbias(n1, n2, s1, s2)
         t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
         ti[-li] = t_tmp
-        tlim[-li] = t.ppf(0.5+0.5*clevel, n1+n2-2)
-        
+        tlim[-li] = t.ppf(0.5 + 0.5 * clevel, n1 + n2 - 2)
+
     #   中间段 n1=n2=window
-    for i in np.arange(0, n-2*window+1):
-        x1 = da[i:i+window]
-        x2 = da[i+window:i+2*window]
+    for i in np.arange(0, n - 2 * window + 1):
+        x1 = da[i : i + window]
+        x2 = da[i + window : i + 2 * window]
         n1 = window
         n2 = window
         s1, m1 = fund_cal(x1, dim)
         s2, m2 = fund_cal(x2, dim)
         s_tmp = sigma2_unbias(n1, n2, s1, s2)
         t_tmp = t_cal(n1, n2, m1, m2, s_tmp)
-        ti[i+window] = t_tmp
-    #   calculate tlim
-        tlim[i+window] = t.ppf(0.5+0.5*clevel, n1+n2-2)
-    
-    
-    del(n, li, x1, x2, n1, n2, s1, s2, m1, m2, s_tmp, t_tmp, i)
-    t_test = xr.DataArray(ti, coords=[n_dim], dims=['time'])
-    t_lim = xr.DataArray(tlim, coords=[n_dim], dims=['time'])
+        ti[i + window] = t_tmp
+        #   calculate tlim
+        tlim[i + window] = t.ppf(0.5 + 0.5 * clevel, n1 + n2 - 2)
+
+    del (n, li, x1, x2, n1, n2, s1, s2, m1, m2, s_tmp, t_tmp, i)
+    t_test = xr.DataArray(ti, coords=[n_dim], dims=["time"])
+    t_lim = xr.DataArray(tlim, coords=[n_dim], dims=["time"])
     return t_test, t_lim
 
-'''
+
+"""
 description: 计算有效自由度
             calculation of effective number of freedom
 param {array} x
@@ -792,7 +895,9 @@ param {str} way:"0": for Leith(1973) method;
 param {integer} l: for way"1", l should be 1 or 2, which means the times of lag correlation calculation;
                     for way"2", l should be less than len(x) - 2; It means the times of lead-lag correlation calculation
 return {integer} neff
-'''
+"""
+
+
 def eff_DOF(x, y, way, l):
     num = np.shape(x)[0]
     #   calculate effective degree of freedom number with Leith(1973) method
@@ -800,8 +905,8 @@ def eff_DOF(x, y, way, l):
         A1_tmp = x[:-1]
         A2_tmp = x[1:]
         tau = stats.linregress(A1_tmp, A2_tmp)[2]
-        neff = int(-0.5*np.log(tau)*num)
-        del(num, A1_tmp, A2_tmp, tau)
+        neff = int(-0.5 * np.log(tau) * num)
+        del (num, A1_tmp, A2_tmp, tau)
     #   calculate with Bretherton(1999) method
     elif way == "1":
         if l == 1:
@@ -809,25 +914,25 @@ def eff_DOF(x, y, way, l):
             A1_tmp = x[:-1]
             A2_tmp = x[1:]
             tau = stats.linregress(A1_tmp, A2_tmp)[2]
-            neff = int(num*(1-tau)/(1+tau))
+            neff = int(num * (1 - tau) / (1 + tau))
             print(neff)
-            del(A1_tmp, A2_tmp, tau)
+            del (A1_tmp, A2_tmp, tau)
         elif l == 2:
             #   calculate the two order ESS for x&y array
             tau = np.ones(2)
             A1_tmp = x[:-1]
             A2_tmp = x[1:]
             tau[0] = stats.linregress(A1_tmp, A2_tmp)[2]
-            
+
             B1_tmp = y[:-1]
             B2_tmp = y[1:]
             tau[1] = stats.linregress(B1_tmp, B2_tmp)[2]
-            
-            neff = int(num*(1-tau[0]*tau[1])/(1.0+tau[0]*tau[1]))
+
+            neff = int(num * (1 - tau[0] * tau[1]) / (1.0 + tau[0] * tau[1]))
             print(neff)
-            del(A1_tmp, A2_tmp, B1_tmp, B2_tmp, tau)
+            del (A1_tmp, A2_tmp, B1_tmp, B2_tmp, tau)
     #   the calculation method of effective DOF in the calculation of correlation coefficient
-    #   if using this method, then should import two data arrays that are used to calculate the correlation coefficient 
+    #   if using this method, then should import two data arrays that are used to calculate the correlation coefficient
     elif way == "2":
         #   calculate the lead-lag correlation of this two array
         tau = 0.0
@@ -840,9 +945,9 @@ def eff_DOF(x, y, way, l):
             tmp1 = stats.linregress(A1_tmp, A2_tmp)[2]
             tmp2 = stats.linregress(B1_tmp, B2_tmp)[2]
             # print(tmp1, tmp2)
-            tau += tmp1*tmp2
+            tau += tmp1 * tmp2
         #   lag
-        for i in np.arange(1, l+1, 1):
+        for i in np.arange(1, l + 1, 1):
             A1_tmp = x[i:]
             A2_tmp = x[:-i]
             B1_tmp = y[i:]
@@ -850,18 +955,21 @@ def eff_DOF(x, y, way, l):
             tmp1 = stats.linregress(A1_tmp, A2_tmp)[2]
             tmp2 = stats.linregress(B1_tmp, B2_tmp)[2]
             # print(tmp1, tmp2)
-            tau += tmp1*tmp2
+            tau += tmp1 * tmp2
         #   contemporaneous correlation
         tau += 1.0
 
-        neff = int(num/tau) - 2
+        neff = int(num / tau) - 2
         print("tau = ", tau, "neff = ", neff)
-        del(num, A1_tmp, A2_tmp, B1_tmp, B2_tmp, tmp1, tmp2, tau)
+        del (num, A1_tmp, A2_tmp, B1_tmp, B2_tmp, tmp1, tmp2, tau)
     return neff
 
+
 def cal_rlim(talpha, n):
-    rlim = np.sqrt(talpha**2/(n-2.0+talpha**2))
+    rlim = np.sqrt(talpha ** 2 / (n - 2.0 + talpha ** 2))
     return rlim
+
+
 # %%
 
 # print(np.reshape(x, (4, 42), order="F"))
