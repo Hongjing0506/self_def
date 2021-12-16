@@ -970,6 +970,187 @@ def cal_rlim(talpha, n):
     return rlim
 
 
+"""
+description: 用于计算3D(season, year, lat, lon)变量场的超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据， freq="season"， ll表示超前（滞后）自身多少个时间单位， inan为在多余的表格中填充np.nan, clevel[0]为是否需要计算有效自由度, clevel[1]为置信度水平
+param {*} x
+param {*} y
+param {str} freq: "season"
+param {integer} ll
+param {bool} inan
+param {list} clevel
+return {*}
+"""
+
+def leadlag_reg3D(x, y, freq, ll, inan, clevel):
+    try:
+        x.transpose("season", "time", ...)
+        y.transpose("season", "time", ...)
+        x_season = x.coords["season"]
+        y_season = y.coords["season"]
+        x_nseason = x_season.shape[0]
+        y_nseason = y_season.shape[0]
+        nlat = y.coords["lat"].shape[0]
+        nlon = y.coords["lon"].shape[0]
+        nyear = x.coords["time"].shape[0]
+        if freq == "leadlag":
+            if ll <= y_nseason:
+                raise ValueError(
+                    "ll should be less equal to the number of season in y}"
+                )
+            # elif ll == y_nseason:
+            #     tmp = y_nseason
+            # elif ll < y_nseason:
+            #     tmp = ll
+            avalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            bvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            rvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            pvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            hyvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            reff = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            tmp_time = np.arange(1, nyear, 1)
+            for xsea in np.arange(0, x_nseason, 1):
+                # calculate the lead-lag correlation of present year
+                for ysea in np.arange(0, ll, 1):
+                    (
+                        avalue[xsea, ll + ysea, :, :],
+                        bvalue[xsea, ll + ysea, :, :],
+                        rvalue[xsea, ll + ysea, :, :],
+                        pvalue[xsea, ll + ysea, :, :],
+                        hyvalue[xsea, ll + ysea, :, :],
+                    ) = dim_linregress(x[xsea, :], y[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x[xsea, :], y[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ll + ysea, :, :] = cal_rlim(t_lim, neff)
+
+                    # calculate the lead correlation of last year
+                    x_tmp = x[:, 1:]
+                    y_tmp = y[:, :-1, :, :]
+                    x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                    (
+                        avalue[xsea, ysea, :, :],
+                        bvalue[xsea, ysea, :, :],
+                        rvalue[xsea, ysea, :, :],
+                        pvalue[xsea, ysea, :, :],
+                        hyvalue[xsea, ysea, :, :],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ysea, :, :] = cal_rlim(t_lim, neff)
+
+                    # calculate the lag correlation of next year
+                    x_tmp = x[:, :-1]
+                    y_tmp = y[:, 1:, :, :]
+                    x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                    (
+                        avalue[xsea, 2 * ll + ysea, :, :],
+                        bvalue[xsea, 2 * ll + ysea, :, :],
+                        rvalue[xsea, 2 * ll + ysea, :, :],
+                        pvalue[xsea, 2 * ll + ysea, :, :],
+                        hyvalue[xsea, 2 * ll + ysea, :, :],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, 2 * ll + ysea, :, :] = cal_rlim(t_lim, neff)
+
+            if inan == True:
+                for iiinan in np.arange(0, x_nseason - 1, 1):
+                    (
+                        avalue[iiinan, iiinan - ll + 1 :, :, :],
+                        bvalue[iiinan, iiinan - ll + 1 :, :, :],
+                        rvalue[iiinan, iiinan - ll + 1 :, :, :],
+                        pvalue[iiinan, iiinan - ll + 1 :, :, :],
+                        hyvalue[iiinan, iiinan - ll + 1 :, :, :],
+                        reff[iiinan, iiinan - ll + 1 :, :, :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
+                    (
+                        avalue[iiinan + 1, : iiinan + 1 :, :, :],
+                        bvalue[iiinan + 1, : iiinan + 1 :, :, :],
+                        rvalue[iiinan + 1, : iiinan + 1 :, :, :],
+                        pvalue[iiinan + 1, : iiinan + 1 :, :, :],
+                        hyvalue[iiinan + 1, : iiinan + 1 :, :, :],
+                        reff[iiinan + 1, : iiinan + 1 :, :, :],
+                    ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        elif freq == "lag":
+            # elif ll == y_nseason:
+            #     tmp = y_nseason
+            # elif ll < y_nseason:
+            #     tmp = ll
+            avalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            bvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            rvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            pvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            hyvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            reff = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            tmp_time = np.arange(1, nyear, 1)
+            if inan == True:                  
+                avalue[:,:,:,:],bvalue[:,:,:,:],rvalue[:,:,:,:],pvalue[:,:,:,:],hyvalue[:,:,:,:],reff[:,:,:,:] = np.nan,np.nan,np.nan,np.nan,np.nan,np.nan
+            
+            for xsea in np.arange(0, x_nseason, 1):
+                for ysea in np.arange(xsea, ll, 1):
+                    # calculate the lead correlation of present year
+                    x_tmp = x[:, :]
+                    y_tmp = y[:, :, :, :]
+                    (
+                        avalue[xsea, ysea, :, :],
+                        bvalue[xsea, ysea, :, :],
+                        rvalue[xsea, ysea, :, :],
+                        pvalue[xsea, ysea, :, :],
+                        hyvalue[xsea, ysea, :, :],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ysea, :, :] = cal_rlim(t_lim, neff)
+                    
+                for ysea in np.arange(0, ll, 1):
+                    # calculate the lag correlation of next year
+                    x_tmp = x[:, :-1]
+                    y_tmp = y[:, 1:, :, :]
+                    x_tmp.coords["time"], y_tmp.coords["time"] = tmp_time, tmp_time
+                    (
+                        avalue[xsea, ll + ysea, :, :],
+                        bvalue[xsea, ll + ysea, :, :],
+                        rvalue[xsea, ll + ysea, :, :],
+                        pvalue[xsea, ll + ysea, :, :],
+                        hyvalue[xsea, ll + ysea, :, :],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ll + ysea, :, :] = cal_rlim(t_lim, neff)
+        else:
+            raise ValueError(r"freq should be one of {season, year}")
+    except ValueError as e:
+        print(repr(e))
+    del (
+        x_season,
+        y_season,
+        x_nseason,
+        y_nseason,
+        nyear,
+        xsea,
+        ysea,
+        x_tmp,
+        y_tmp,
+        tmp_time,
+        neff,
+    )
+    return (avalue, bvalue, rvalue, pvalue, hyvalue, reff)
+
 # %%
 
 # print(np.reshape(x, (4, 42), order="F"))
