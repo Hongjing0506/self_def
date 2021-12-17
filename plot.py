@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2021-12-17 13:22:06
+LastEditTime: 2021-12-17 18:59:36
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -72,7 +72,6 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
     axs.format(coast=True, coastlinewidth=0.8, coastzorder=1)
     proj = pplt.PlateCarree(central_longitude=cl)
     lonticks += -cl
-    print(lonticks)
     extents = [lonticks[0], lonticks[-1], latticks[0], latticks[-1]]
     axs.set_extent(extents, crs=proj)
     axs.set_xticks(lonticks, crs=proj)
@@ -91,7 +90,7 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
         ax.tick_params(
             axis="both",
             which="major",
-            labelsize=8,
+            labelsize=7,
             direction="out",
             length=4.0,
             width=0.8,
@@ -108,3 +107,41 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
             top=False,
             right=False,
         )
+        
+        
+def lsmask(ds, lsdir, label):
+    with xr.open_dataset(lsdir) as f:
+        da = f["mask"][0]
+    landsea = filplonlat(da)
+    ds.coords["mask"] = (("lat", "lon"), landsea.values)
+    if label == "land":
+        ds = ds.where(ds.mask < 1)
+    elif label == "ocean":
+        ds = ds.where(ds.mask > 0)
+    del ds["mask"]
+    return ds
+
+
+def filplonlat(ds):
+    # To facilitate data subsetting
+    # print(da.attrs)
+    """
+    print(
+        f'\n\nBefore flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].'
+    )
+    ds["lon"] = ((ds["lon"] + 180) % 360) - 180
+    # Sort lons, so that subset operations end up being simpler.
+    ds = ds.sortby("lon")
+    """
+    ds = ds.sortby("lat", ascending=True)
+    # print(ds.attrs)
+    print('\n\nAfter sorting lat values, ds["lat"] is:')
+    print(ds["lat"])
+    return ds
+
+def plt_sig(da, ax, n, area, color, large):
+    
+    da_cyc, lon_cyc = add_cyclic_point(da[::n, ::n], coord=da.lon[::n])
+    nx, ny = np.meshgrid(lon_cyc, da.lat[::n])
+    sig = ax.scatter(
+        nx[area], ny[area], marker=".", s=large, c=color, alpha=0.6)
