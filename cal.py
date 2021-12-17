@@ -96,79 +96,9 @@ def p_month(data, mon_s, mon_e):
     return res
 
 
-def filplonlat(ds):
-    # To facilitate data subsetting
-    # print(da.attrs)
-    """
-    print(
-        f'\n\nBefore flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].'
-    )
-    ds["lon"] = ((ds["lon"] + 180) % 360) - 180
-    # Sort lons, so that subset operations end up being simpler.
-    ds = ds.sortby("lon")
-    """
-    ds = ds.sortby("lat", ascending=True)
-    # print(ds.attrs)
-    print('\n\nAfter sorting lat values, ds["lat"] is:')
-    print(ds["lat"])
-    return ds
 
 
-def lsmask(ds, lsdir, label):
-    with xr.open_dataset(lsdir) as f:
-        da = f["mask"][0]
-    landsea = filplonlat(da)
-    ds.coords["mask"] = (("lat", "lon"), landsea.values)
-    if label == "land":
-        ds = ds.where(ds.mask < 1)
-    elif label == "ocean":
-        ds = ds.where(ds.mask > 0)
-    del ds["mask"]
-    return ds
 
-
-def mapart(ax, extents):
-    proj = ccrs.PlateCarree()
-    ax.coastlines(color="k", lw=1.5)
-    ax.add_feature(cfeature.LAND, edgecolor="black", facecolor="white")
-    ax.set_extent(extents, crs=proj)
-    xticks = np.arange(extents[0], extents[1] + 1, 20)
-    yticks = np.arange(extents[2], extents[3] + 1, 10)
-    # 这里的间隔需要根据自己实际调整
-    ax.set_xticks(xticks, crs=proj)
-    ax.set_yticks(yticks, crs=proj)
-    lon_formatter = LongitudeFormatter(zero_direction_label=True)
-    lat_formatter = LatitudeFormatter()
-    ax.xaxis.set_major_formatter(lon_formatter)
-    xminorLocator = MultipleLocator(5)
-    yminorLocator = MultipleLocator(10)
-    ax.yaxis.set_major_formatter(lat_formatter)
-    ax.xaxis.set_major_formatter(lon_formatter)
-    ax.yaxis.set_minor_locator(xminorLocator)
-    ax.xaxis.set_minor_locator(yminorLocator)
-    ax.tick_params(
-        axis="both",
-        which="major",
-        labelsize=8,
-        direction="out",
-        length=4.0,
-        width=0.8,
-        pad=2.0,
-        top=False,
-        right=False,
-    )
-    # 为了便于在不同的场景中使用，这里使用了一个全局变量gl_font
-    ax.minorticks_on()
-    ax.tick_params(
-        axis="both",
-        which="minor",
-        direction="out",
-        length=3.0,
-        width=0.8,
-        top=False,
-        right=False,
-    )
-    ax.outline_patch.set_linewidth(1.0)
 
 
 def detrend_dim(da, dim, deg, trend):
@@ -191,14 +121,6 @@ def dim_linregress(x, y):
         output_core_dims=[[], [], [], [], []],
         vectorize=True,
         dask="parallelized",
-    )
-
-
-def plt_sig(da, ax, n, area):
-    da_cyc, lon_cyc = add_cyclic_point(da[::n, ::n], coord=da.lon[::n])
-    nx, ny = np.meshgrid(lon_cyc, da.lat[::n])
-    sig = ax.scatter(
-        nx[area], ny[area], marker=".", s=9, c="black", alpha=0.6, transform=proj
     )
 
 
