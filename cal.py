@@ -96,11 +96,6 @@ def p_month(data, mon_s, mon_e):
     return res
 
 
-
-
-
-
-
 def detrend_dim(da, dim, deg, trend):
     # detrend along a single dimension
     p = da.polyfit(dim=dim, deg=1, skipna=True)
@@ -363,13 +358,9 @@ def mon_to_season3D(da):
     da = da.sel(time=timesel).coarsen(time=3).mean()
     season = ["MAM", "JJA", "SON", "DJF"]
     temp = np.array(da)
-    temp = np.reshape(
-        temp, (4, nyear, lat.shape[0], lon.shape[0]), order="F"
-    )
+    temp = np.reshape(temp, (4, nyear, lat.shape[0], lon.shape[0]), order="F")
     nda = xr.DataArray(
-        temp,
-        coords=[season, year, lat, lon],
-        dims=["season", "time", "lat", "lon"],
+        temp, coords=[season, year, lat, lon], dims=["season", "time", "lat", "lon"],
     )
     del (time, lat, lon, nyear, year, timesel, season, temp)
     return nda
@@ -903,6 +894,7 @@ param {list} clevel
 return {*}
 """
 
+
 def leadlag_reg3D(x, y, freq, ll, inan, clevel):
     try:
         x.transpose("season", "time", ...)
@@ -1023,12 +1015,21 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
             bvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
             rvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
             pvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
-            hyvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            hyvalue = np.zeros(
+                (x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
             reff = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
             tmp_time = np.arange(1, nyear, 1)
-            if inan == True:                  
-                avalue[:,:,:,:],bvalue[:,:,:,:],rvalue[:,:,:,:],pvalue[:,:,:,:],hyvalue[:,:,:,:],reff[:,:,:,:] = np.nan,np.nan,np.nan,np.nan,np.nan,np.nan
-            
+            if inan == True:
+                (
+                    avalue[:, :, :, :],
+                    bvalue[:, :, :, :],
+                    rvalue[:, :, :, :],
+                    pvalue[:, :, :, :],
+                    hyvalue[:, :, :, :],
+                    reff[:, :, :, :],
+                ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
             for xsea in np.arange(0, x_nseason, 1):
                 for ysea in np.arange(xsea, ll, 1):
                     # calculate the lead correlation of present year
@@ -1047,7 +1048,7 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
                         neff = np.shape(x_tmp[xsea, :])[0]
                     t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
                     reff[xsea, ysea, :, :] = cal_rlim(t_lim, neff)
-                    
+
                 for ysea in np.arange(0, ll, 1):
                     # calculate the lag correlation of next year
                     x_tmp = x[:, :-1]
@@ -1085,9 +1086,23 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
     )
     return (avalue, bvalue, rvalue, pvalue, hyvalue, reff)
 
-# %%
+'''
+description: 计算u、v风的显著性检验，当u或者v某一个分量通过检验时，认为该点的风场通过检验，最后的结果大于0的部分为通过检验的部分
+param {*} u 待检验的u
+param {*} v 待检验的v
+param {*} ulim  u的检验标准
+param {*} vlim  v的检验标准
+return {*}
+'''
+def wind_check(u, v, ulim, vlim):
+    u_index = u.where(abs(u) >= ulim)
+    v_index = v.where(abs(v) >= vlim)
+    tmp_a = u_index.fillna(0)
+    tmp_b = v_index.fillna(0)
+    new_index = tmp_a + tmp_b
+    return(new_index)
+    del(u_index, v_index, new_index, tmp_a, tmp_b)
 
-# print(np.reshape(x, (4, 42), order="F"))
 
 # %%
 # lat = [0.0, 1.0]
