@@ -923,12 +923,24 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
             #     tmp = y_nseason
             # elif ll < y_nseason:
             #     tmp = ll
-            avalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
-            bvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
-            rvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
-            pvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
-            hyvalue = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
-            reff = np.zeros((x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64)
+            avalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
+            bvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
+            rvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
+            pvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
+            hyvalue = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
+            reff = np.zeros(
+                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+            )
             tmp_time = np.arange(1, nyear, 1)
             for xsea in np.arange(0, x_nseason, 1):
                 # calculate the lead-lag correlation of present year
