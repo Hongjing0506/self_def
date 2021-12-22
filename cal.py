@@ -916,22 +916,22 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
             # elif ll < y_nseason:
             #     tmp = ll
             avalue = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             bvalue = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             rvalue = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             pvalue = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             hyvalue = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             reff = np.zeros(
-                (x_nseason, 2 * ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, 2 * ll + y_nseason, nlat, nlon), dtype=np.float64
             )
             tmp_time = np.arange(1, nyear, 1)
             for xsea in np.arange(0, x_nseason, 1):
@@ -1011,14 +1011,14 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
             #     tmp = y_nseason
             # elif ll < y_nseason:
             #     tmp = ll
-            avalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
-            bvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
-            rvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
-            pvalue = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            avalue = np.zeros((x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64)
+            bvalue = np.zeros((x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64)
+            rvalue = np.zeros((x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64)
+            pvalue = np.zeros((x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64)
             hyvalue = np.zeros(
-                (x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64
+                (x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64
             )
-            reff = np.zeros((x_nseason, ll + x_nseason, nlat, nlon), dtype=np.float64)
+            reff = np.zeros((x_nseason, ll + y_nseason, nlat, nlon), dtype=np.float64)
             tmp_time = np.arange(1, nyear, 1)
             if inan == True:
                 (
@@ -1067,6 +1067,44 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
                         neff = np.shape(x_tmp[xsea, :])[0]
                     t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
                     reff[xsea, ll + ysea, :, :] = cal_rlim(t_lim, neff)
+        elif freq == "present":
+            avalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
+            bvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
+            rvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
+            pvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
+            hyvalue = np.zeros(
+                (x_nseason, y_nseason, nlat, nlon), dtype=np.float64
+            )
+            reff = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
+            tmp_time = np.arange(1, nyear, 1)
+            if inan == True:
+                (
+                    avalue[:, :, :, :],
+                    bvalue[:, :, :, :],
+                    rvalue[:, :, :, :],
+                    pvalue[:, :, :, :],
+                    hyvalue[:, :, :, :],
+                    reff[:, :, :, :],
+                ) = (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
+            for xsea in np.arange(0, x_nseason, 1):
+                for ysea in np.arange(xsea, ll, 1):
+                    # calculate the lead correlation of present year
+                    x_tmp = x[:, :]
+                    y_tmp = y[:, :, :, :]
+                    (
+                        avalue[xsea, ysea, :, :],
+                        bvalue[xsea, ysea, :, :],
+                        rvalue[xsea, ysea, :, :],
+                        pvalue[xsea, ysea, :, :],
+                        hyvalue[xsea, ysea, :, :],
+                    ) = dim_linregress(x_tmp[xsea, :], y_tmp[ysea, :, :, :])
+                    if clevel[0] == True:
+                        neff = eff_DOF(x_tmp[xsea, :], y_tmp[ysea, :, :, :], "1", 2)
+                    elif clevel[0] == False:
+                        neff = np.shape(x_tmp[xsea, :])[0]
+                    t_lim = t.ppf(0.5 + 0.5 * clevel[1], neff)
+                    reff[xsea, ysea, :, :] = cal_rlim(t_lim, neff)
         else:
             raise ValueError(r"freq should be one of {season, year}")
     except ValueError as e:
