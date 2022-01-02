@@ -79,7 +79,7 @@ def p_month(data, mon_s, mon_e):
 
     time = data["time"]
     data.transpose("time", ...)
-    year_s = pd.to_datetime(time).year[1]
+    year_s = pd.to_datetime(time).year[0]
     year_e = pd.to_datetime(time).year[-1]
     nyear = pd.date_range(str(year_s), str(year_e), freq="AS")
     m_ind = data.groupby("time.month").groups[mon_s]
@@ -304,9 +304,9 @@ return {*}
 def mon_to_season1D(da):
     da.transpose("time", ...)
     time = da.coords["time"]
-    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[0]
     year = pd.date_range(
-        start=str(pd.to_datetime(time).year[1]),
+        start=str(pd.to_datetime(time).year[0]),
         end=str(pd.to_datetime(time).year[-1] - 1),
         freq="AS",
     )
@@ -340,9 +340,9 @@ def mon_to_season3D(da):
     time = da.coords["time"]
     lat = da.coords["lat"]
     lon = da.coords["lon"]
-    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[0]
     year = pd.date_range(
-        start=str(pd.to_datetime(time).year[1]),
+        start=str(pd.to_datetime(time).year[0]),
         end=str(pd.to_datetime(time).year[-1] - 1),
         freq="AS",
     )
@@ -379,9 +379,9 @@ def mon_to_season4D(da):
     level = da.coords["level"]
     lat = da.coords["lat"]
     lon = da.coords["lon"]
-    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[1]
+    nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[0]
     year = pd.date_range(
-        start=str(pd.to_datetime(time).year[1]),
+        start=str(pd.to_datetime(time).year[0]),
         end=str(pd.to_datetime(time).year[-1] - 1),
         freq="AS",
     )
