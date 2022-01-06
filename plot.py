@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-01-06 15:47:30
+LastEditTime: 2022-01-06 15:54:54
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -151,9 +151,12 @@ def leadlag_array(da, n):
     time = da.coords['time']
     if n > 0:
         # lag
-        new[:-n] = da[n:]
+        new[:-n] = np.array(da[n:])
         new[-n:] = np.nan
     if n < 0:
         # lead
-        new[-n:] = da[:n]
+        new[-n:] = np.array(da[:n])
         new[:-n] = np.nan
+    new.coords['time'] = time
+    return new
+    
