@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2021-12-17 18:59:36
+LastEditTime: 2022-01-06 15:47:30
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -145,3 +145,15 @@ def plt_sig(da, ax, n, area, color, large):
     nx, ny = np.meshgrid(lon_cyc, da.lat[::n])
     sig = ax.scatter(
         nx[area], ny[area], marker=".", s=large, c=color, alpha=0.6)
+
+def leadlag_array(da, n):
+    new = da
+    time = da.coords['time']
+    if n > 0:
+        # lag
+        new[:-n] = da[n:]
+        new[-n:] = np.nan
+    if n < 0:
+        # lead
+        new[-n:] = da[:n]
+        new[:-n] = np.nan
