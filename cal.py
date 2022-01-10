@@ -1140,6 +1140,14 @@ def wind_check(u, v, ulim, vlim):
     new_index = tmp_a + tmp_b
     return(new_index)
     del(u_index, v_index, new_index, tmp_a, tmp_b)
+    
+    
+def year_choose(year, da):
+    selcase = da.sel(time=da.coords['time'].dt.year==year[0])
+    for i in year[1:]:
+        a = da.sel(time=da.coords['time'].dt.year==i)
+        selcase = xr.concat([selcase, a], dim='time')
+    return selcase
 
 
 # %%
