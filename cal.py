@@ -1150,6 +1150,21 @@ def year_choose(year, da):
     return selcase
 
 
+def generate_tmask(da1, da2, clevel):
+    n1 = len(da1.coords['time'])
+    n2 = len(da2.coords['time'])
+    m1 = da1.mean(dim="time", skipna=True)
+    m2 = da2.mean(dim="time", skipna=True)
+    s1 = da1.std(dim="time", skipna=True)
+    s2 = da2.std(dim="time", skipna=True)
+    t_n = t_cal(n1, n2, m1, m2, sigma2_unbias(n1, n2, s1, s2))
+    fdm = int(n1+n2-2)
+    talpha = t.ppf(0.5+0.5*clevel, fdm)
+    mask = xr.where(abs(t_n)>=talpha, 1.0, 0.0)
+    
+    return mask
+    del n1,n2,m1,m2,s1,s2,fdn,talpha
+
 # %%
 # lat = [0.0, 1.0]
 # lon = [0.0, 1.0]
