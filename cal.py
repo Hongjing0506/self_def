@@ -15,6 +15,7 @@ import re
 from cdo import Cdo
 import shutil
 import pandas as pd
+import sys
 
 cdo = Cdo()
 
@@ -1164,6 +1165,52 @@ def generate_tmask(da1, da2, clevel):
     
     return mask
     del n1,n2,m1,m2,s1,s2,fdn,talpha
+
+def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
+    if os.path.exists(tmpPath) == True:
+        shutil.rmtree(tmpPath)
+        os.mkdir(tmpPath)
+    else:
+        os.mkdir(tmpPath)
+    # length = len(regressRule)  #len()函数返回对象(字符、列表、元组等)长度或项目的个数，在此处为返回regressRule的元素个数
+    # for path,dir_list,file_list in g:    #for的遍历，os.walk遍历了几次（文件夹本身1次，子文件夹有几个就加几次），for就遍历几次，其中子文件夹中的所有文件名都会记录为一个列表
+    for var in variable:
+        g = os.walk(srcPath)
+        for path, dir_list, file_list in g:
+            # for x in np.arange(0, len(exp)):
+            #     for i in np.arange(0, len(regressRule)):  # 有多少个模式在regressRule里就遍历多少次
+            inputString = ""
+            mergelist = []
+            for file_name in file_list:  # 此处对file_list中的元素进行遍历并逐一赋值给file_name
+                if re.search(var+"_", file_name) != None and re.search("_"+freq+"_", file_name) != None and re.search(rl, file_name):
+                    print(file_name)
+                    inputfile = os.path.join(path, file_name)
+                    outputfile = os.path.join(tmpPath, "tmp_" + file_name)
+                    cdo.remapbil("r144x72", input=inputfile, output=outputfile)
+                    mergelist.append(file_name)
+                else:
+                    pass
+            if len(mergelist) == 0:
+                print("There are no need to combine the model data ")
+                pass
+            elif len(mergelist) == 1:  # 如果该模式只有一个文件（可能是已经被处理好或本来就只有一个文件不需要进行合并）
+                cdo.copy(
+                    input=os.path.join(tmpPath, "tmp_" + mergelist[0]),
+                    output=os.path.join(dstPath, mergelist[0]),
+                )
+            else:
+                for j in np.arange(0, len(mergelist)):
+                    inputString += os.path.join(
+                        tmpPath, "tmp_" + mergelist[j] + " "
+                    )  # 加字符串形式的空格是为了满足 cdo ifile1 ifile2……这样的格式
+                cdo.mergetime(
+                    input=inputString,
+                    output=os.path.join(
+                        dstPath,
+                        mergelist[0][:-11] + mergelist[j][-11:],
+                    ),
+                )
+                
 
 # %%
 # lat = [0.0, 1.0]
