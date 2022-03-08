@@ -1073,9 +1073,7 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
             bvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
             rvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
             pvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
-            hyvalue = np.zeros(
-                (x_nseason, y_nseason, nlat, nlon), dtype=np.float64
-            )
+            hyvalue = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
             reff = np.zeros((x_nseason, y_nseason, nlat, nlon), dtype=np.float64)
             tmp_time = np.arange(1, nyear, 1)
             if inan == True:
@@ -1125,46 +1123,50 @@ def leadlag_reg3D(x, y, freq, ll, inan, clevel):
     )
     return (avalue, bvalue, rvalue, pvalue, hyvalue, reff)
 
-'''
+
+"""
 description: 计算u、v风的显著性检验，当u或者v某一个分量通过检验时，认为该点的风场通过检验，最后的结果大于0的部分为通过检验的部分
 param {*} u 待检验的u
 param {*} v 待检验的v
 param {*} ulim  u的检验标准
 param {*} vlim  v的检验标准
 return {*}
-'''
+"""
+
+
 def wind_check(u, v, ulim, vlim):
     u_index = u.where(abs(u) >= ulim)
     v_index = v.where(abs(v) >= vlim)
     tmp_a = u_index.fillna(0)
     tmp_b = v_index.fillna(0)
     new_index = tmp_a + tmp_b
-    return(new_index)
-    del(u_index, v_index, new_index, tmp_a, tmp_b)
-    
-    
+    return new_index
+    del (u_index, v_index, new_index, tmp_a, tmp_b)
+
+
 def year_choose(year, da):
-    selcase = da.sel(time=da.coords['time'].dt.year==year[0])
+    selcase = da.sel(time=da.coords["time"].dt.year == year[0])
     for i in year[1:]:
-        a = da.sel(time=da.coords['time'].dt.year==i)
-        selcase = xr.concat([selcase, a], dim='time')
+        a = da.sel(time=da.coords["time"].dt.year == i)
+        selcase = xr.concat([selcase, a], dim="time")
     return selcase
 
 
 def generate_tmask(da1, da2, clevel):
-    n1 = len(da1.coords['time'])
-    n2 = len(da2.coords['time'])
+    n1 = len(da1.coords["time"])
+    n2 = len(da2.coords["time"])
     m1 = da1.mean(dim="time", skipna=True)
     m2 = da2.mean(dim="time", skipna=True)
     s1 = da1.std(dim="time", skipna=True)
     s2 = da2.std(dim="time", skipna=True)
     t_n = t_cal(n1, n2, m1, m2, sigma2_unbias(n1, n2, s1, s2))
-    fdm = int(n1+n2-2)
-    talpha = t.ppf(0.5+0.5*clevel, fdm)
-    mask = xr.where(abs(t_n)>=talpha, 1.0, 0.0)
-    
+    fdm = int(n1 + n2 - 2)
+    talpha = t.ppf(0.5 + 0.5 * clevel, fdm)
+    mask = xr.where(abs(t_n) >= talpha, 1.0, 0.0)
+
     return mask
-    del n1,n2,m1,m2,s1,s2,fdn,talpha
+    del n1, n2, m1, m2, s1, s2, fdn, talpha
+
 
 def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
     if os.path.exists(tmpPath) == True:
@@ -1182,7 +1184,11 @@ def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
             inputString = ""
             mergelist = []
             for file_name in file_list:  # 此处对file_list中的元素进行遍历并逐一赋值给file_name
-                if re.search(var+"_", file_name) != None and re.search("_"+freq+"_", file_name) != None and re.search(rl, file_name):
+                if (
+                    re.search(var + "_", file_name) != None
+                    and re.search("_" + freq + "_", file_name) != None
+                    and re.search(rl, file_name)
+                ):
                     print(file_name)
                     inputfile = os.path.join(path, file_name)
                     outputfile = os.path.join(tmpPath, "tmp_" + file_name)
@@ -1206,11 +1212,37 @@ def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
                 cdo.mergetime(
                     input=inputString,
                     output=os.path.join(
-                        dstPath,
-                        mergelist[0][:-11] + mergelist[j][-11:],
+                        dstPath, mergelist[0][:-11] + mergelist[j][-11:],
                     ),
                 )
-                
+
+
+def CMIP6_check(dstPath, modelname, yearstart, yearend):
+    for name, end in zip(modelname, yearend):
+        g = os.walk(dstPath)
+        for path, dir_list, file_list in g:
+            for file_name in file_list:
+                if re.search("_" + name + "_", file_name) != None:
+                    newname = file_name[:-16] + yearstart + "-" + end + ".nc"
+                    # print(newname)
+                    os.rename(
+                        os.path.join(path, file_name), os.path.join(path, newname)
+                    )
+                    file = xr.open_dataset(os.path.join(path, newname))
+                    varname = newname[: newname.find("_")]
+                    var = file[varname]
+                    print(
+                        "varname = ",
+                        varname,
+                        str(np.array(var.coords["time"][0]))[:7],
+                        str(np.array(var.coords["time"][-1]))[:7],
+                        "time_num = ",
+                        len(var.coords["time"]),
+                        "units = ",
+                        var.attrs["units"],
+                    )
+                    del(file)
+
 
 # %%
 # lat = [0.0, 1.0]
