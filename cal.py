@@ -1248,6 +1248,6 @@ def p_year(srcPath, dstPath, start, end):
     for path, dir_list, file_list in g:
         for file_name in file_list:
             inputfile = os.path.join(srcPath, file_name)
-            outputfile = os.path.join(dstPath, file_name)
+            outputfile = os.path.join(dstPath, file_name[:-16] + str(start) + "01-" + str(end) + "12.nc")
             cdo.selyear(str(start) + r"/" + str(end), input=inputfile, output=outputfile)
 # %%
