@@ -1243,14 +1243,11 @@ def CMIP6_check(dstPath, modelname, yearstart, yearend):
                     )
                     del(file)
 
-
-# %%
-# lat = [0.0, 1.0]
-# lon = [0.0, 1.0]
-# level = [850, 200]
-# time = np.arange(1, 9, 1)
-
-# x_n = np.reshape(x, (4, 2, 2, 2, 2), order="F")
-# print(x[:, 0, 0, 0])
-# print(x_n[1, :, 0, 0, 0])
+def p_year(srcPath, dstPath, start, end):
+    g = os.walk(srcPath)
+    for path, dir_list, file_list in g:
+        for file_name in file_list:
+            inputfile = os.path.join(srcPath, file_name)
+            outputfile = os.path.join(dstPath, file_name)
+            cdo.selyear(str(start) + r"/" + str(end), input=inputfile, output=outputfile)
 # %%
