@@ -101,18 +101,18 @@ description:
     本函数用于计算去趋势的数据，其中参数deg=0
 param {*} da    数据
 param {*} dim   沿着哪一维进行去趋势
-param {*} deg   设置为0
-param {*} trend 设置为False则返回去趋势的数据，设置为True则返回趋势本身
+param {*} deg   设置为1
+param {*} demean 设置为False则返回去趋势但不去平均值（减去at）的数据，设置为True则返回既去除趋势又去除平均值的数据(减去at+b)
 return {*}
 '''
-def detrend_dim(da, dim, deg, trend):
+def detrend_dim(da, dim, deg, demean):
     # detrend along a single dimension
     p = da.polyfit(dim=dim, deg=deg, skipna=True)
     fit = xr.polyval(da[dim], p.polyfit_coefficients)
-    if trend == False:
+    if demean == False:
+        return (da - fit) + da.mean(dim="time", skipna=True)
+    elif demean == True:
         return da - fit
-    elif trend == True:
-        return fit
 
 
 def dim_linregress(x, y):
@@ -1258,4 +1258,9 @@ def p_year(srcPath, dstPath, start, end):
             inputfile = os.path.join(srcPath, file_name)
             outputfile = os.path.join(dstPath, file_name[:-16] + str(start) + "01-" + str(end) + "12.nc")
             cdo.selyear(str(start) + r"/" + str(end), input=inputfile, output=outputfile)
+
+
+
+
+
 # %%
