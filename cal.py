@@ -96,10 +96,18 @@ def p_month(data, mon_s, mon_e):
     res["month"] = month
     return res
 
-
+'''
+description: 
+    本函数用于计算去趋势的数据，其中参数deg=0
+param {*} da    数据
+param {*} dim   沿着哪一维进行去趋势
+param {*} deg   设置为0
+param {*} trend 设置为False则返回去趋势的数据，设置为True则返回趋势本身
+return {*}
+'''
 def detrend_dim(da, dim, deg, trend):
     # detrend along a single dimension
-    p = da.polyfit(dim=dim, deg=1, skipna=True)
+    p = da.polyfit(dim=dim, deg=deg, skipna=True)
     fit = xr.polyval(da[dim], p.polyfit_coefficients)
     if trend == False:
         return da - fit
