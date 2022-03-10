@@ -1259,7 +1259,13 @@ def p_year(srcPath, dstPath, start, end):
             outputfile = os.path.join(dstPath, file_name[:-16] + str(start) + "01-" + str(end) + "12.nc")
             cdo.selyear(str(start) + r"/" + str(end), input=inputfile, output=outputfile)
 
-
+def cal_ridge_line(da):
+    lat = da.coords["lat"]
+    ridgelon = np.array(da.coords["lon"])
+    ridgelat = np.zeros(len(ridgelon))
+    for i, longitude in enumerate(ridgelon):
+        ridgelat[i] = float(lat[abs(da.sel(lon=longitude)).argmin(dim="lat")])
+    return ridgelat, ridgelon
 
 
 
