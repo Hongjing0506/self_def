@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-03-11 17:18:44
+LastEditTime: 2022-03-11 19:43:20
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
