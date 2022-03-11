@@ -1267,6 +1267,16 @@ def cal_ridge_line(da):
         ridgelat[i] = float(lat[abs(da.sel(lon=longitude)).argmin(dim="lat")])
     return ridgelat, ridgelon
 
+def eof_analys(da,lat,num):
+    coslat = np.cos(np.deg2rad(lat))
+    wgts = np.sqrt(coslat)[..., np.newaxis]
 
+    solver = Eof(da, weights=wgts)
+    EOFs = solver.eofsAsCorrelation()
+    PCs = solver.pcs(npcs = num, pcscaling = 1)
+    eigen_Values = solver.eigenvalues()
+    percentContrib = eigen_Values * 100./np.sum(eigen_Values)
+
+    return EOFs,PCs,percentContrib
 
 # %%
