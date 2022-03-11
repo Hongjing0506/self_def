@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-01-06 15:54:54
+LastEditTime: 2022-03-11 16:51:51
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -69,7 +69,7 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
     from cartopy.mpl.ticker import LatitudeFormatter
     from matplotlib.ticker import MultipleLocator
     
-    axs.format(coast=True, coastlinewidth=0.8, coastzorder=1)
+    axs.format(coast=True, coastlinewidth=0.8, coastzorder=1, coastcolor="grey6")
     proj = pplt.PlateCarree(central_longitude=cl)
     lonticks += -cl
     extents = [lonticks[0], lonticks[-1], latticks[0], latticks[-1]]
@@ -160,3 +160,8 @@ def leadlag_array(da, n):
     new.coords['time'] = time
     return new
     
+def TP_shape(shp_path, ax, proj):
+    from cartopy.io.shapereader.Reader import Reader
+    reader = Reader(shp_path)
+    TP = cfeature.ShapelyFeature(reader.geometries(), proj, edgecolor='grey6', facecolor='grey6')
+    ax.add_freature(TP, linewidth=0.8)
