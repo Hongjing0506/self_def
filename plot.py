@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-03-11 16:54:38
+LastEditTime: 2022-03-11 17:18:44
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -160,8 +160,8 @@ def leadlag_array(da, n):
     new.coords['time'] = time
     return new
     
-def TP_shape(shp_path, ax, proj):
-    from cartopy.io.shapereader.Reader import Reader
+def add_shape(shp_path, ax, proj):
+    from cartopy.io.shapereader import Reader
     reader = Reader(shp_path)
-    TP = cfeature.ShapelyFeature(reader.geometries(), proj, edgecolor='grey6', facecolor='grey6')
-    ax.add_freature(TP, linewidth=0.8)
+    shape = cfeature.ShapelyFeature(reader.geometries(), proj, edgecolor='grey6', facecolor='grey6')
+    ax.add_feature(shape, linewidth=0.8)
