@@ -1281,4 +1281,10 @@ def eof_analys(da,lat,num):
 
     return EOFs,PCs,percentContrib
 
+def uniform_timestamp(filepath, dstpath, var, start, end, periods):
+    time = pd.date_range(start, end, freq=periods)
+    f = xr.open_dataset(filepath)
+    fvar = f[var]
+    fvar.coords['time'] = time
+    fvar.to_netcdf(dstpath)
 # %%
