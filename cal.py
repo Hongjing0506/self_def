@@ -1287,4 +1287,14 @@ def uniform_timestamp(filepath, dstpath, var, start, end, periods):
     fvar = f[var]
     fvar.coords['time'] = time
     fvar.to_netcdf(dstpath)
+    
+def retrieve_allstrindex(filename, strkey):
+    count = filename.count(strkey)
+    c = -1
+    loc = []
+    for i in range(count):
+        c = filename.find(strkey, c+1, len(filename))
+        loc.append(c)
+    return loc
+    
 # %%
