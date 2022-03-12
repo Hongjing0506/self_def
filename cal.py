@@ -31,6 +31,8 @@ from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.stats import t
+from eofs.multivariate.standard import MultivariateEof
+from eofs.standard import Eof
 
 """
 description: 

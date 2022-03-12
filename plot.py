@@ -61,7 +61,7 @@ param {int} lonmin 经度次刻度间隔
 param {int} latmin 纬度次刻度间隔
 return {*}
 '''    
-def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
+def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents):
     import proplot as pplt
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
@@ -72,7 +72,6 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin):
     axs.format(coast=True, coastlinewidth=0.8, coastzorder=1, coastcolor="grey6")
     proj = pplt.PlateCarree(central_longitude=cl)
     lonticks += -cl
-    extents = [lonticks[0], lonticks[-1], latticks[0], latticks[-1]]
     axs.set_extent(extents, crs=proj)
     axs.set_xticks(lonticks, crs=proj)
     axs.set_yticks(latticks, crs=proj)
