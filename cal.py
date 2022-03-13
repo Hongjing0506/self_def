@@ -1357,5 +1357,15 @@ def retrieve_allstrindex(filename, strkey):
         c = filename.find(strkey, c+1, len(filename))
         loc.append(c)
     return loc
-    
+
+'''
+description: 计算数据的纬度加权平均
+param {*} da    数据
+return {*}
+'''
+def cal_lat_weighted_mean(da):
+    weights = np.cos(np.deg2rad(da.lat))
+    weights.name = "weights"
+    da_mean = da.weighted(weights).mean(("lat"), skipna=True)
+    return da_mean
 # %%
