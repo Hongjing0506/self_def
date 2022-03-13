@@ -1368,4 +1368,22 @@ def cal_lat_weighted_mean(da):
     weights.name = "weights"
     da_mean = da.weighted(weights).mean(("lat"), skipna=True)
     return da_mean
+
+'''
+description: 对于timexlatxlon的三维月数据去除年循环
+param {*} da    数据
+param {*} timestart 数据的起始时间
+return {*}
+'''
+def deannual_cycle_for_monthdata_3D(da, timestart):
+    da_month = ca.p_month(da, 1, 12)
+    da_monthmean = da_month.mean(dim="time", skipna=True)
+    daa_month = da_month - da_monthmean
+    daa_tmp = np.reshape(np.array(daa_month), [len(da.time), len(da.coords['lat']), len(da.coords['lon'])], order="F")
+    lon = daa_month.coords["lon"]
+    time_new = pd.date_range(timestart, periods=len(sst.coords["time"]), freq="MS")
+    daa = xr.DataArray(
+        daa_tmp, coords={"time": time_new, "lat": lat, "lon": lon}, dims=["time", "lat", "lon"]
+    )
+    return daa
 # %%
