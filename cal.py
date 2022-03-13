@@ -1142,8 +1142,6 @@ param {*} ulim  u的检验标准
 param {*} vlim  v的检验标准
 return {*}
 """
-
-
 def wind_check(u, v, ulim, vlim):
     u_index = u.where(abs(u) >= ulim)
     v_index = v.where(abs(v) >= vlim)
@@ -1261,6 +1259,11 @@ def p_year(srcPath, dstPath, start, end):
             outputfile = os.path.join(dstPath, file_name[:-16] + str(start) + "01-" + str(end) + "12.nc")
             cdo.selyear(str(start) + r"/" + str(end), input=inputfile, output=outputfile)
 
+'''
+description: da为u风场，利用u风场计算高压、低压的脊线/槽线，将u的东西风转换位置认为是脊线/槽线
+param {*} da：u风场
+return {*} 返回脊线/槽线的经纬度
+'''
 def cal_ridge_line(da):
     lat = da.coords["lat"]
     ridgelon = np.array(da.coords["lon"])
@@ -1269,6 +1272,13 @@ def cal_ridge_line(da):
         ridgelat[i] = float(lat[abs(da.sel(lon=longitude)).argmin(dim="lat")])
     return ridgelat, ridgelon
 
+'''
+description: 计算da的eof分析，da需要已经标准化处理过、去趋势的变量
+param {*} da 变量场，需要已经经过标准化和detrend处理
+param {*} lat 变量的纬度，用于计算纬度加权
+param {*} num 返回num个模态的pc序列
+return {*}
+'''
 def eof_analys(da,lat,num):
     coslat = np.cos(np.deg2rad(lat))
     wgts = np.sqrt(coslat)[..., np.newaxis]
@@ -1281,6 +1291,16 @@ def eof_analys(da,lat,num):
 
     return EOFs,PCs,percentContrib
 
+'''
+description: 统一数据的时间坐标
+param {*} filepath  文件路径
+param {*} dstpath   保存路径
+param {*} var   变量名
+param {*} start 时间坐标开始时间
+param {*} end   时间坐标结束时间
+param {*} periods   时间坐标间隔
+return {*}
+'''
 def uniform_timestamp(filepath, dstpath, var, start, end, periods):
     time = pd.date_range(start, end, freq=periods)
     f = xr.open_dataset(filepath)
@@ -1288,6 +1308,22 @@ def uniform_timestamp(filepath, dstpath, var, start, end, periods):
     fvar.coords['time'] = time
     fvar.to_netcdf(dstpath)
     
+    
+'''
+description: 统一数据的垂直坐标
+param {*} filepath  文件路径
+param {*} dstpath   保存路径
+param {*} var   变量名
+return {*}
+'''
+def uniform_plev(filepath, dstpath, var):
+    plev = np.array([100000.0, 92500.0, 85000.0, 70000.0, 60000.0, 50000.0, 40000.0, 30000.0, 25000.0, 20000.0, 15000.0, 10000.0, 7000.0, 5000.0, 3000.0, 2000.0, 1000.0, 500.0, 100.0])
+    f = xr.open_dataset(filepath)
+    fvar = f[var]
+    fvar.coords['plev'] = plev
+    fvar.to_netcdf(dstpath)
+
+
 def retrieve_allstrindex(filename, strkey):
     count = filename.count(strkey)
     c = -1
