@@ -112,7 +112,13 @@ def detrend_dim(da, dim, deg, demean):
     elif demean == True:
         return da - fit
 
-
+'''
+description:
+    本函数用于计算回归pattern，y=ax+b
+param {*} x
+param {*} y
+return {*}
+'''
 def dim_linregress(x, y):
     # returns: slope,intercept,rvalue,pvalue,hypothesis
     return xr.apply_ufunc(
@@ -125,7 +131,11 @@ def dim_linregress(x, y):
         dask="parallelized",
     )
 
-
+'''
+description: 对da进行标准化处理
+param {*} da    数据
+return {*}
+'''
 def standardize(da):
     mean = da.mean(dim="time", skipna=True)
     std = da.std(dim="time", skipna=True)
@@ -302,8 +312,6 @@ description: 用于将1D的月数据转换为季节数据，DJF已考虑过渡�
 param {*} da
 return {*}
 """
-
-
 def mon_to_season1D(da):
     da.transpose("time", ...)
     time = da.coords["time"]
@@ -336,8 +344,6 @@ description: 用于将3D(time x lat x lon)的月数据转换为季节数据，DJ
 param {*} da
 return {*}
 """
-
-
 def mon_to_season3D(da):
     da.transpose("time", "lat", "lon")
     time = da.coords["time"]
@@ -374,8 +380,6 @@ description: 用于将4D(time x level x lat x lon)的月数据转换为季节数
 param {*} da
 return {*}
 """
-
-
 def mon_to_season4D(da):
     da.transpose("time", "level", "lat", "lon")
     time = da.coords["time"]
@@ -422,8 +426,6 @@ param {bool} inan
 param {list} clevel
 return {*}
 """
-
-
 def leadlag_reg(x, y, freq, ll, inan, clevel):
     try:
         if freq == "season":
@@ -552,8 +554,6 @@ param {bool} inan
 param {integer} window
 return {*}
 """
-
-
 def leadlag_reg_rolling(x, y, freq, ll, inan, window):
     try:
         if freq == "season":
@@ -870,7 +870,12 @@ def eff_DOF(x, y, way, l):
         del (num, A1_tmp, A2_tmp, B1_tmp, B2_tmp, tmp1, tmp2, tau)
     return neff
 
-
+'''
+description: 计算相关系数临界值
+param {*} talpha    t临界值
+param {*} n 数据长度
+return {*}
+'''
 def cal_rlim(talpha, n):
     rlim = np.sqrt(talpha ** 2 / (n - 2.0 + talpha ** 2))
     return rlim
