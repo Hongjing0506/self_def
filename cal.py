@@ -49,8 +49,6 @@ param {bool} meanon
 return {*}
     xarray dataarray
 """
-
-
 def p_time(data, mon_s, mon_end, meanon):
     time = data["time"]
     n_data = data.sel(
@@ -74,8 +72,6 @@ param {integer} mon_s
 param {integer} mon_e
 return {*}
 """
-
-
 def p_month(data, mon_s, mon_e):
     import pandas as pd
     import xarray as xr
@@ -138,12 +134,11 @@ def standardize(da):
 
 """
 description: 
-    计算SAM index，v为monthly meridional wind，并需要包含850hPa和200hPa；本计算已进行纬度加权；
+    计算SAM index，v为monthly meridional wind，并需要包含850hPa和200hPa；本计算已进行纬度加权；SAM定义为：
+    10°N-30°N，70°E-110°E	v850-v200
 param {*} v
 return {*}
 """
-
-
 def SAM(v):
     # V850 - V200
     lon = v.lon
@@ -175,12 +170,13 @@ def SAM(v):
 
 """
 description: 
-    计算SEAM index，u为monthly zonal wind，并需要包含850hPa层次；本计算已进行纬度加权；
+    计算SEAM index，u为monthly zonal wind，并需要包含850hPa层次；本计算已进行纬度加权；SEAM定义为：
+        region1: 5°N-15°N，90°E-130°E
+		region2: 22.5°N-32.5°N，110°E-140°E
+		region1 u850 – region2 u850
 param {*} u
 return {*}
 """
-
-
 def SEAM(u):
     lon = u.lon
     lat = u.lat
@@ -219,12 +215,10 @@ def SEAM(u):
 
 
 """
-description: 
-param {*} u
+description: 计算EAM index，其定义为region1: 40°N-50°N，110°E-150°E，region2: 25°N-35°N，110°E-150°E，region1 u200 – region2 u200
+param {*} u u变量
 return {*}
 """
-
-
 def EAM(u):
     lon = u.lon
     lat = u.lat
@@ -265,12 +259,10 @@ def EAM(u):
 
 """
 description: 
-    计算Webster-Yang index；u为zonal wind，需包含850hPa和200hPa
+    计算Webster-Yang index；u为zonal wind，需包含850hPa和200hPa，定义为5°N-20°N，40°E-110°E u850-u200
 param {*} u
 return {*}
 """
-
-
 def WY(u):
     lon = u.lon
     lat = u.lat
@@ -699,15 +691,13 @@ param {float} s1: standard deviation of array1
 param {float} s2: standard deviation of array2
 return {*}
 """
-
-
 def sigma2_unbias(n1, n2, s1, s2):
     sigma2 = np.sqrt(((n1 - 1) * s1 ** 2 + (n2 - 1) * s2 ** 2) / (n1 + n2 - 2))
     return sigma2
 
 
 """
-description: 计算t统计量
+description: 计算t统计量（data1和data2之间平均值是否存在显著差异）
 param {float/integer} n1: the number of array1
 param {float/integer} n2: the number of array2
 param {float} m1: mean of array1
@@ -715,8 +705,6 @@ param {float} m2: mean of array2
 param {float} sigma: unbiased estimation of two arrays
 return {*}
 """
-
-
 def t_cal(n1, n2, m1, m2, sigma):
     t = (m1 - m2) / sigma / np.sqrt(1 / n1 + 1 / n2)
     return t
@@ -728,8 +716,6 @@ param {*} x: array
 param {str} dim: 指定计算的维度名称
 return {*}
 """
-
-
 def fund_cal(x, dim):
     s = x.std(dim=dim, skipna=True)
     m = x.mean(dim=dim, skipna=True)
@@ -744,8 +730,6 @@ param {integer} window: 滑动t检验基准点前后两子序列的长度
 param {float} clevel: t临界值对应的置信度（如0.95）
 return {*}
 """
-
-
 def rolling_t_test(da, dim, window, clevel):
     from scipy.stats import t
 
@@ -820,8 +804,6 @@ param {integer} l: for way"1", l should be 1 or 2, which means the times of lag 
                     for way"2", l should be less than len(x) - 2; It means the times of lead-lag correlation calculation
 return {integer} neff
 """
-
-
 def eff_DOF(x, y, way, l):
     num = np.shape(x)[0]
     #   calculate effective degree of freedom number with Leith(1973) method
@@ -904,8 +886,6 @@ param {bool} inan
 param {list} clevel
 return {*}
 """
-
-
 def leadlag_reg3D(x, y, freq, ll, inan, clevel):
     try:
         x.transpose("season", "time", ...)
@@ -1151,7 +1131,12 @@ def wind_check(u, v, ulim, vlim):
     return new_index
     del (u_index, v_index, new_index, tmp_a, tmp_b)
 
-
+'''
+description: 挑选数据中所需要的年份，并返回这些年份的集合
+param {*} year  需要的年份序列
+param {*} da    数据
+return {*}      相应年份的数据集合
+'''
 def year_choose(year, da):
     selcase = da.sel(time=da.coords["time"].dt.year == year[0])
     for i in year[1:]:
@@ -1159,7 +1144,13 @@ def year_choose(year, da):
         selcase = xr.concat([selcase, a], dim="time")
     return selcase
 
-
+'''
+description: 计算da1和da2平均值差异是否显著并生成mask图，超过clevel显著性水平的区域标记为1.0，否则为0.0
+param {*} da1   数据组1
+param {*} da2   数据组2
+param {*} clevel    置信度
+return {*}  mask    是否显著的mask图
+'''
 def generate_tmask(da1, da2, clevel):
     n1 = len(da1.coords["time"])
     n2 = len(da2.coords["time"])
@@ -1175,7 +1166,16 @@ def generate_tmask(da1, da2, clevel):
     return mask
     del n1, n2, m1, m2, s1, s2, fdn, talpha
 
-
+'''
+description: CMIP6数据预处理函数，包括数据插值和数据合并
+param {*} srcPath   原始数据保存路径
+param {*} tmpPath   存放插值后数据的路径
+param {*} dstPath   目标数据保存路径
+param {*} variable  变量名
+param {*} freq      数据的frequency（Amon或day等）
+param {*} rl    realization name（r1i1p1f1等）
+return {*}
+'''
 def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
     if os.path.exists(tmpPath) == True:
         shutil.rmtree(tmpPath)
@@ -1224,7 +1224,14 @@ def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
                     ),
                 )
 
-
+'''
+description: CMIP6文件检查
+param {*} dstPath   文件路径
+param {*} modelname 模式名称
+param {*} yearstart 开始年份
+param {*} yearend   结束年份
+return {*}
+'''
 def CMIP6_check(dstPath, modelname, yearstart, yearend):
     for name, end in zip(modelname, yearend):
         g = os.walk(dstPath)
@@ -1251,6 +1258,14 @@ def CMIP6_check(dstPath, modelname, yearstart, yearend):
                     )
                     del(file)
 
+'''
+description: 挑选数据指定时间段
+param {*} srcPath   原始数据保存路径
+param {*} dstPath   目标数据保存路径
+param {*} start 开始年份
+param {*} end   结束年份
+return {*}
+'''
 def p_year(srcPath, dstPath, start, end):
     g = os.walk(srcPath)
     for path, dir_list, file_list in g:
@@ -1323,7 +1338,12 @@ def uniform_plev(filepath, dstpath, var):
     fvar.coords['plev'] = plev
     fvar.to_netcdf(dstpath)
 
-
+'''
+description: 返回字符串中，需要搜索的字段的所在位置
+param {*} filename  字符产
+param {*} strkey    需要搜索的字段
+return {*} loc      返回需要搜索字段的位置
+'''
 def retrieve_allstrindex(filename, strkey):
     count = filename.count(strkey)
     c = -1
