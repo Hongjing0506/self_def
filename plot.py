@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-03-11 19:43:20
+LastEditTime: 2022-03-13 23:00:03
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -164,3 +164,19 @@ def add_shape(shp_path, ax, proj):
     reader = Reader(shp_path)
     shape = cfeature.ShapelyFeature(reader.geometries(), proj, edgecolor='grey6', facecolor='grey6')
     ax.add_feature(shape, linewidth=0.8)
+    
+def patches(x0, y0, width, height, proj):
+    from matplotlib.patches import Rectangle
+
+    rect = Rectangle(
+        (x0, y0),
+        width,
+        height,
+        fc="none",
+        ec="grey5",
+        linewidth=1.0,
+        zorder=1.1,
+        transform=proj,
+        linestyle="--",
+    )
+    ax.add_patch(rect)
