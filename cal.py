@@ -1386,4 +1386,31 @@ def deannual_cycle_for_monthdata_3D(da, timestart):
         daa_tmp, coords={"time": time_new, "lat": lat, "lon": lon}, dims=["time", "lat", "lon"]
     )
     return daa
+
+def rolling_reg_index(x, y, window):
+    time = x.coords["time"]
+    new_time = pd.date_range(str(np.array(x.time.dt.year[window//2]))+"0101", freq="MS", periods=len(time)-window+1)
+    avalue = np.full(len(time)-window+1, np.nan)
+    bvalue = np.full(len(time)-window+1, np.nan)
+    rvalue = np.full(len(time)-window+1, np.nan)
+    pvalue = np.full(len(time)-window+1, np.nan)
+    hyvalue = np.full(len(time)-window+1, np.nan)
+    for nx in np.arange(0, len(time)-window+1):
+        avalue[nx], bvalue[nx], rvalue[nx], pvalue[nx], hyvalue[nx] = dim_linregress(x[nx:nx+window], y[nx:nx+window])
+    regress = xr.Dataset(
+    data_vars=dict(
+        avalue=(["time"], avalue),
+        bvalue=(["time"], bvalue),
+        rvalue=(["time"], rvalue),
+        pvalue=(["time"], pvalue),
+        hyvalue=(["time"], hyvalue),
+        ),
+    coords=dict(
+        time=new_time,
+    ),
+    attrs=dict(
+        description="rolling_regression"
+    ))
+    return regress
+
 # %%
