@@ -313,7 +313,7 @@ param {*} da
 return {*}
 """
 def mon_to_season1D(da):
-    da.transpose("time", ...)
+    da = da.transpose("time", ...)
     time = da.coords["time"]
     nyear = pd.to_datetime(time).year[-1] - pd.to_datetime(time).year[0]
     year = pd.date_range(
@@ -1415,7 +1415,7 @@ def rolling_reg_index(x, y, time, window, freq, returndataset):
         return avalue, bvalue, rvalue, pvalue, hyvalue
 
 def rolling_regression_pattern(x, y, time, window, freq):
-    return xr.apply_ufunc(
+    avalue, bvalue, rvalue, pvalue, hyvalue = xr.apply_ufunc(
         rolling_reg_index,
         x,
         y,
@@ -1426,4 +1426,10 @@ def rolling_regression_pattern(x, y, time, window, freq):
         kwargs={"time":time, "window": window, "freq": freq, "returndataset": False},
         join="left"
         )
+    avalue = avalue.transpose("time", ...)
+    bvalue = bvalue.transpose("time", ...)
+    rvalue = rvalue.transpose("time", ...)
+    pvalue = pvalue.transpose("time", ...)
+    hyvalue = hyvalue.transpose("time", ...)
+    return avalue, bvalue, rvalue, pvalue, hyvalue
 # %%
