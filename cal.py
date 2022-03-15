@@ -1387,30 +1387,43 @@ def deannual_cycle_for_monthdata_3D(da, timestart):
     )
     return daa
 
-def rolling_reg_index(x, y, window):
-    time = x.coords["time"]
-    new_time = pd.date_range(str(np.array(x.time.dt.year[window//2]))+"0101", freq="MS", periods=len(time)-window+1)
-    avalue = np.full(len(time)-window+1, np.nan)
-    bvalue = np.full(len(time)-window+1, np.nan)
-    rvalue = np.full(len(time)-window+1, np.nan)
-    pvalue = np.full(len(time)-window+1, np.nan)
-    hyvalue = np.full(len(time)-window+1, np.nan)
-    for nx in np.arange(0, len(time)-window+1):
-        avalue[nx], bvalue[nx], rvalue[nx], pvalue[nx], hyvalue[nx] = dim_linregress(x[nx:nx+window], y[nx:nx+window])
-    regress = xr.Dataset(
-    data_vars=dict(
-        avalue=(["time"], avalue),
-        bvalue=(["time"], bvalue),
-        rvalue=(["time"], rvalue),
-        pvalue=(["time"], pvalue),
-        hyvalue=(["time"], hyvalue),
+def rolling_reg_index(x, y, time, window, freq, returndataset):
+    avalue = np.full(len(time), np.nan)
+    bvalue = np.full(len(time), np.nan)
+    rvalue = np.full(len(time), np.nan)
+    pvalue = np.full(len(time), np.nan)
+    hyvalue = np.full(len(time), np.nan)
+    for nx in np.arange(window//2, len(time)-window//2):
+        avalue[nx], bvalue[nx], rvalue[nx], pvalue[nx], hyvalue[nx] = stats.linregress(x[nx:nx+window], y[nx:nx+window])
+    if returndataset == True:
+        regress = xr.Dataset(
+        data_vars=dict(
+            avalue=(["time"], avalue),
+            bvalue=(["time"], bvalue),
+            rvalue=(["time"], rvalue),
+            pvalue=(["time"], pvalue),
+            hyvalue=(["time"], hyvalue),
+            ),
+        coords=dict(
+            time=time,
         ),
-    coords=dict(
-        time=new_time,
-    ),
-    attrs=dict(
-        description="rolling_regression"
-    ))
-    return regress
+        attrs=dict(
+            description="rolling_regression"
+        ))
+        return regress
+    elif returndataset == False:
+        return avalue, bvalue, rvalue, pvalue, hyvalue
 
+def rolling_regression_pattern(x, y, time, window, freq):
+    return xr.apply_ufunc(
+        rolling_reg_index,
+        x,
+        y,
+        input_core_dims=[["time"], ["time"]],
+        output_core_dims=[["time"],["time"],["time"],["time"],["time"]],
+        vectorize=True,
+        dask="parallelized",
+        kwargs={"time":time, "window": window, "freq": freq, "returndataset": False},
+        join="left"
+        )
 # %%
