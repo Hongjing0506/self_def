@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-03-14 15:37:47
+LastEditTime: 2022-03-18 23:31:57
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -173,7 +173,7 @@ def patches(ax, x0, y0, width, height, proj):
         width,
         height,
         fc="none",
-        ec="grey5",
+        ec="grey7",
         linewidth=1.0,
         zorder=1.1,
         transform=proj,
