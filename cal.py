@@ -33,6 +33,9 @@ from scipy import stats
 from scipy.stats import t
 from eofs.multivariate.standard import MultivariateEof
 from eofs.standard import Eof
+import metpy.calc as mpcalc
+import metpy.constants as constants
+import geocat.comp
 
 """
 description: 
@@ -1432,4 +1435,18 @@ def rolling_regression_pattern(x, y, time, window, freq):
     pvalue = pvalue.transpose("time", ...)
     hyvalue = hyvalue.transpose("time", ...)
     return avalue, bvalue, rvalue, pvalue, hyvalue
+
+def cal_divergence(da1, da2):
+    dx, dy = mpcalc.lat_lon_grid_deltas(da1.coords["lon"], da1.coords["lat"])
+    div = xr.apply_ufunc(
+        mpcalc.divergence,
+        da1,
+        da2,
+        input_core_dims=[["lat","lon"],["lat","lon"]],
+        output_core_dims=[["lat","lon"]],
+        vectorize=True,
+        dask="parallelized",
+        kwargs={"dx":dx, "dy":dy}
+    )
+    return div
 # %%
