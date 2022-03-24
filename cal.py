@@ -31,6 +31,7 @@ from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.stats import t
+from scipy import signal
 from eofs.multivariate.standard import MultivariateEof
 from eofs.standard import Eof
 import metpy.calc as mpcalc
@@ -1449,4 +1450,17 @@ def cal_divergence(da1, da2):
         kwargs={"dx":dx, "dy":dy}
     )
     return div
+
+def butterworth_filter(da, deg, ya, yb, btype):
+    da = da.transpose("time", ...)
+    fs = 1.0
+    highfreq = 2.0/ya/fs
+    if btype == "bandpass":
+        lowfreq = 2.0/yb/fs
+        b, a = signal.butter(deg, [lowfreq, highfreq], btype=btype, fs=fs)
+    else:
+        b, a = signal.butter(deg, highfreq, btype=btype, fs=fs)
+    new_data = da
+    new_data.data = signal.filtfilt(b, a, da, axis=0, padtype="even")
+    return new_data
 # %%
