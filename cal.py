@@ -1453,6 +1453,7 @@ def cal_divergence(da1, da2):
 
 def butterworth_filter(da, deg, ya, yb, btype):
     da = da.transpose("time", ...)
+    da = da - da.mean(dim="time", skipna=True)
     fs = 1.0
     highfreq = 2.0/ya/fs
     if btype == "bandpass":
