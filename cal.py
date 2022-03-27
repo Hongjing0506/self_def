@@ -37,6 +37,7 @@ from eofs.standard import Eof
 import metpy.calc as mpcalc
 import metpy.constants as constants
 import geocat.comp
+from windspharm.xarray import VectorWind
 
 """
 description: 
@@ -144,6 +145,25 @@ def standardize(da):
     mean = da.mean(dim="time", skipna=True)
     std = da.std(dim="time", skipna=True)
     return (da - mean) / std
+
+
+def IWF(u,v):
+    w = VectorWind(u.sel(level=850.0), v.sel(level=850.0))
+    xi = w.vorticity()[:, ::-1, :].loc[:, 5.0:32.5, 90.0:140.0]
+    lat = xi.coords["lat"]
+    weights = np.cos(np.deg2rad(lat))
+    weights.name="weights"
+    IWF = xi.weighted(weights).mean(("lon", "lat"), skipna=True)
+    return IWF    
+    del (
+        w,
+        xi,
+        lat,
+        weights,
+        IWF
+    )
+    
+
 
 
 """
