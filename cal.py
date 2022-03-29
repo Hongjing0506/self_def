@@ -163,8 +163,13 @@ def IWF(u,v):
         IWF
     )
     
-
-
+def NEWI(u):
+    u200 = u.sel(level=200.0)
+    u200_area1 = cal_lat_weighted_mean(u200.loc[:,2.5:10.0,105:140]).mean(dim="lon", skipna=True)
+    u200_area2 = cal_lat_weighted_mean(u200.loc[:,17.5:22.5,105:140]).mean(dim="lon", skipna=True)
+    u200_area3 = cal_lat_weighted_mean(u200.loc[:,30.0:37.5,105:140]).mean(dim="lon", skipna=True)
+    NEWI = standardize(u200_area1 - u200_area2 + u200_area3)
+    return NEWI
 
 """
 description: 
