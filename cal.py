@@ -1500,4 +1500,64 @@ def cal_rlim1(clevel, n):
     talpha = t.ppf(0.5+0.5*clevel, n-2.0)
     rlim = np.sqrt(talpha ** 2 / (n - 2.0 + talpha ** 2))
     return rlim
+
+def cal_pcc(var1, var2):
+    # var1.coords["level"].name = "plev"
+    # var1 = var1.where(var2.isnull() == False)
+    # print(var1)
+    array1 = np.array(var1)
+    array2 = np.array(var2)
+    array1 = np.where(np.isnan(array2), np.nan, array1)
+    array2 = np.where(np.isnan(array1), np.nan, array2)
+    # array1 = array1
+    lat = var1.coords["lat"]
+    lon = var1.coords["lon"]
+    # plev = var1.coords["level"]
+    shape = np.shape(var1)
+    shape_prod = np.prod(shape)
+    # print(shape_prod)
+    h = 2.5 / 180.0 * np.pi * 6371000.0
+    s_up = np.array(
+        2.5 / 360.0 * np.pi * 2.0 * 6371000.0 * np.cos((lat + 1.25) * np.pi / 180.0)
+    )
+    s_down = np.array(
+        2.5 / 360.0 * np.pi * 2.0 * 6371000.0 * np.cos((lat - 1.25) * np.pi / 180.0)
+    )
+    # s_up = np.tile(
+    #     np.array(
+    #         2.5 / 360.0 * np.pi * 2.0 * 6371000.0 * np.cos((lat + 1.25) * np.pi / 180.0)
+    #     ),
+    #     int(shape_prod / len(lat)),
+    # ).reshape(np.shape(var1))
+    # print(np.shape(s_up))
+    # s_down = np.tile(
+    #     np.array(
+    #         2.5 / 360.0 * np.pi * 2.0 * 6371000.0 * np.cos((lat - 1.25) * np.pi / 180.0)
+    #     ),
+    #     int(shape_prod / len(lat)),
+    # ).reshape(np.shape(var1))
+
+    ds = (s_up + s_down) / 2.0 * h
+    s = np.sum(ds)
+    # print(s)
+    wei = ds / s
+    # print(ds)
+    weight = np.zeros(np.shape(var1))
+    for i in np.arange(len(lat)):
+        weight[i, :] = wei[i]
+        # weight[i, :] = wei[i]
+    # print(weight)
+    # quanzhong = xr.DataArray(weight,coords=[plev, lat, lon], dims=['level','lat','lon'])
+    # quanzhong.name = "weight"
+    # quanzhong.to_netcdf("/mnt/c/Users/11529/Desktop/quanzhong.nc")
+    v1v2 = np.nansum(array1 * array2 * weight, axis=(0, 1))
+    # v1v2 = np.nansum(array1 * array2 * weight, axis=(0, 1))
+    # print(np.shape(v1v2))
+    v1v1 = np.nansum(array1 * array1 * weight, axis=(0, 1))
+    # v1v1 = np.nansum(array1 * array1 * weight, axis=(0, 1))
+    v2v2 = np.nansum(array2 * array2 * weight, axis=(0, 1))
+    # v2v2 = np.nansum(array2 * array2 * weight, axis=(0, 1))
+    # print(v2v2)
+    pcc = v1v2 / np.sqrt(v1v1) / np.sqrt(v2v2)
+    return pcc
 # %%
