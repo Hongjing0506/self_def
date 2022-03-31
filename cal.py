@@ -1489,4 +1489,15 @@ def butterworth_filter(da, deg, ya, yb, btype):
     new_data = da
     new_data.data = signal.filtfilt(b, a, da, axis=0, padtype="even")
     return new_data
+
+'''
+description: 计算相关系数临界值，直接想要的显著性水平和样本长度
+param {*} talpha    t临界值
+param {*} n 数据长度（并非n-2）
+return {*}
+'''
+def cal_rlim1(clevel, n):
+    talpha = t.ppf(0.5+0.5*clevel, n-2.0)
+    rlim = np.sqrt(talpha ** 2 / (n - 2.0 + talpha ** 2))
+    return rlim
 # %%
