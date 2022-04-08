@@ -101,7 +101,7 @@ def p_month(data, mon_s, mon_e):
 
 '''
 description: 
-    本函数用于计算去趋势的数据，其中参数deg=0
+    本函数用于计算去趋势的数据，其中参数deg=1
 param {*} da    数据
 param {*} dim   沿着哪一维进行去趋势
 param {*} deg   设置为1
@@ -111,6 +111,10 @@ return {*}
 def detrend_dim(da, dim, deg, demean):
     # detrend along a single dimension
     p = da.polyfit(dim=dim, deg=deg, skipna=True)
+    regress = dim_linregress(np.arange(len(da.coords["time"])), da)
+    print("avalue = ", regress[0].data)
+    print("rvalue = ", regress[2].data)
+    print("pvalue = ", regress[3].data)
     fit = xr.polyval(da[dim], p.polyfit_coefficients)
     if demean == False:
         return (da - fit) + da.mean(dim="time", skipna=True)
