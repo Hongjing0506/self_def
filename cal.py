@@ -1595,13 +1595,13 @@ def MME_reg_mask(MME_var, std_var, N, mask):
 description: This function is to return the confidence interval of da in confidence level alpha(e.g. 95%) use fractile bootstrap method.
 param {*} da: the sample data
 param {*} B: the number of random sample times
-param {*} alpha: significance level
+param {*} alpha: confidence level(e.g. 0.95)
 return {*}
 '''
-def cal_mean_bootstrap_confidence_intercals(da, B, alpha):
+def cal_mean_bootstrap_confidence_intervals(da, B, alpha):
     nparray = np.array(da)
-    low_lim = int(B*alpha/2)
-    high_lim = int(B*(1.0-alpha/2))
+    low_lim = int(B*(1-alpha)/2)
+    high_lim = int(B*(1.0-(1-alpha)/2))
     tmp_mean = np.zeros(B)
     for i in range(B):
         bs_sample = np.random.choice(nparray, size=len(nparray))
@@ -1614,17 +1614,42 @@ def cal_mean_bootstrap_confidence_intercals(da, B, alpha):
 description: This function is to return the confidence interval of da in confidence level alpha(e.g. 95%) use fractile bootstrap method.
 param {*} da: the sample data
 param {*} B: the number of random sample times
-param {*} alpha: significance level
+param {*} alpha: confidence level(e.g. 0.95)
 return {*}
 '''
-def cal_median_bootstrap_confidence_intercals(da, B, alpha):
+def cal_median_bootstrap_confidence_intervals(da, B, alpha):
     nparray = np.array(da)
-    low_lim = int(B*alpha/2)
-    high_lim = int(B*(1.0-alpha/2))
+    low_lim = int(B*(1-alpha)/2)
+    high_lim = int(B*(1.0-(1-alpha)/2))
     tmp_median = np.zeros(B)
     for i in range(B):
         bs_sample = np.random.choice(nparray, size=len(nparray))
         tmp_median[i] = np.median(bs_sample)
     sort_median = np.sort(tmp_median)
     return sort_median[low_lim-1], sort_median[high_lim-1]
+
+'''
+description: This function is to return the confidence interval of da(ndims, e.g. models x lat x lon) in confidence level alpha(e.g. 95%) use fractile bootstrap method.
+param {*} da: xarray data
+param {*} B: the numner of resampling times
+param {*} alpha: confidence level
+param {*} dim: the dimensions that should not be broadcasted
+return {*}
+'''
+def cal_mean_bootstrap_confidence_intervals_pattern(da, B, alpha, dim):
+    low_lim, high_lim = xr.apply_ufunc(
+        cal_mean_bootstrap_confidence_intervals,
+        da,
+        input_core_dims=[[dim]],
+        output_core_dims=[[],[]],
+        vectorize=True,
+        dask="parallelized",
+        kwargs={"B":B, "alpha":alpha}
+        )
+    low_lim.name = "low_lim"
+    high_lim.name = "high_lim"
+    return low_lim, high_lim
+
+def generate_bootstrap_mask(low_lim1, high_lim1, low_lim2, high_lim2):
+    
 # %%
