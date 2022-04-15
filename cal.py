@@ -1609,6 +1609,14 @@ def cal_mean_bootstrap_confidence_intercals(da, B, alpha):
     sort_mean = np.sort(tmp_mean)
     return sort_mean[low_lim-1], sort_mean[high_lim-1]
 
+
+'''
+description: This function is to return the confidence interval of da in confidence level alpha(e.g. 95%) use fractile bootstrap method.
+param {*} da: the sample data
+param {*} B: the number of random sample times
+param {*} alpha: significance level
+return {*}
+'''
 def cal_median_bootstrap_confidence_intercals(da, B, alpha):
     nparray = np.array(da)
     low_lim = int(B*alpha/2)
