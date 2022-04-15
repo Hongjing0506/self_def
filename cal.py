@@ -111,10 +111,10 @@ return {*}
 def detrend_dim(da, dim, deg, demean):
     # detrend along a single dimension
     p = da.polyfit(dim=dim, deg=deg, skipna=True)
-    regress = dim_linregress(np.arange(len(da.coords["time"])), da)
-    print("avalue = ", regress[0].data)
-    print("rvalue = ", regress[2].data)
-    print("pvalue = ", regress[3].data)
+    # regress = dim_linregress(np.arange(len(da.coords["time"])), da)
+    # print("avalue = ", regress[0].data)
+    # print("rvalue = ", regress[2].data)
+    # print("pvalue = ", regress[3].data)
     fit = xr.polyval(da[dim], p.polyfit_coefficients)
     if demean == False:
         return (da - fit) + da.mean(dim="time", skipna=True)
@@ -153,7 +153,11 @@ def standardize(da):
 
 def IWF(u,v):
     w = VectorWind(u.sel(level=850.0), v.sel(level=850.0))
-    xi = w.vorticity()[:, ::-1, :].loc[:, 5.0:32.5, 90.0:140.0]
+    lat = u.coords["lat"]
+    lon = v.coords["lon"]
+    lat_range = lat[(lat >= 5.0) & (lat <= 32.5)]
+    lon_range = lon[(lon >= 90.0) & (lon <= 140.0)]
+    xi = w.vorticity().sel(lat=lat_range, lon=lon_range)
     lat = xi.coords["lat"]
     weights = np.cos(np.deg2rad(lat))
     weights.name="weights"
@@ -1564,4 +1568,55 @@ def cal_pcc(var1, var2):
     # print(v2v2)
     pcc = v1v2 / np.sqrt(v1v1) / np.sqrt(v2v2)
     return pcc
+
+
+def dezonal_mean(da):
+    da_zonal = da.mean(dim="lat", skipna=True)
+    return da - da_zonal
+
+'''
+description: This function is to generate the limitation or mask. For mask, where equal to 1.0 means the point are statistically significant at the 95% confidence level.
+param {*} MME_var: 
+param {*} std_var
+param {*} N
+param {*} siglevel
+return {*}
+'''
+def MME_reg_mask(MME_var, std_var, N, mask):
+    lamb = 1.96
+    lim = std_var*lamb/np.sqrt(N)
+    if mask == True:
+        gmask = xr.where(abs(MME_var)-lim>=0.0, 1.0, 0.0)
+        return gmask
+    elif mask == False:
+        return lim
+    
+'''
+description: This function is to return the confidence interval of da in confidence level alpha(e.g. 95%) use fractile bootstrap method.
+param {*} da: the sample data
+param {*} B: the number of random sample times
+param {*} alpha: significance level
+return {*}
+'''
+def cal_mean_bootstrap_confidence_intercals(da, B, alpha):
+    nparray = np.array(da)
+    low_lim = int(B*alpha/2)
+    high_lim = int(B*(1.0-alpha/2))
+    tmp_mean = np.zeros(B)
+    for i in range(B):
+        bs_sample = np.random.choice(nparray, size=len(nparray))
+        tmp_mean[i] = np.mean(bs_sample)
+    sort_mean = np.sort(tmp_mean)
+    return sort_mean[low_lim-1], sort_mean[high_lim-1]
+
+def cal_median_bootstrap_confidence_intercals(da, B, alpha):
+    nparray = np.array(da)
+    low_lim = int(B*alpha/2)
+    high_lim = int(B*(1.0-alpha/2))
+    tmp_median = np.zeros(B)
+    for i in range(B):
+        bs_sample = np.random.choice(nparray, size=len(nparray))
+        tmp_median[i] = np.median(bs_sample)
+    sort_median = np.sort(tmp_median)
+    return sort_median[low_lim-1], sort_median[high_lim-1]
 # %%
