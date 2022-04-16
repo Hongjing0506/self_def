@@ -152,22 +152,23 @@ def standardize(da):
 
 
 def IWF(u,v):
-    w = VectorWind(u.sel(level=850.0), v.sel(level=850.0))
     lat = u.coords["lat"]
     lon = v.coords["lon"]
     lat_range = lat[(lat >= 5.0) & (lat <= 32.5)]
     lon_range = lon[(lon >= 90.0) & (lon <= 140.0)]
-    xi = w.vorticity().sel(lat=lat_range, lon=lon_range)
-    lat = xi.coords["lat"]
-    weights = np.cos(np.deg2rad(lat))
-    weights.name="weights"
-    IWF = xi.weighted(weights).mean(("lon", "lat"), skipna=True)
+    u_IWF = u.sel(lat=lat_range, lon=lon_range, level=850.0)
+    v_IWF = v.sel(lat=lat_range, lon=lon_range, level=850.0)
+    vort = mpcalc.vorticity(u_IWF, v_IWF)
+    IWF = cal_lat_weighted_mean(vort).mean(dim="lon", skipna=True).metpy.dequantify()
     return IWF    
     del (
-        w,
-        xi,
         lat,
-        weights,
+        lon,
+        lat_range,
+        lon_range,
+        u_IWF,
+        v_IWF,
+        vort,
         IWF
     )
     
@@ -1651,5 +1652,10 @@ def cal_mean_bootstrap_confidence_intervals_pattern(da, B, alpha, dim):
     return low_lim, high_lim
 
 def generate_bootstrap_mask(low_lim1, high_lim1, low_lim2, high_lim2):
-    
+    tmp1 = xr.where(low_lim1-high_lim2>0, 1.0, 0.0)
+    tmp2 = xr.where(low_lim2-high_lim1>0, 1.0, 0.0)
+    tmp1.name = "mask"
+    tmp2.name = "mask"
+    tmp = tmp1 + tmp2
+    return tmp
 # %%
