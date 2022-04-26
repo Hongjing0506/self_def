@@ -1658,4 +1658,50 @@ def generate_bootstrap_mask(low_lim1, high_lim1, low_lim2, high_lim2):
     tmp2.name = "mask"
     tmp = tmp1 + tmp2
     return tmp
+
+def Fisher_permutation_test(x1,y1,x2,y2,**kargs):
+    args = {"K":1000, "axis":0, "return_mask":False, "CI": 0.95}
+    args = {**args, **kargs}
+    print(len(x1))
+    #   calculate the original regression coefficients differences
+    odiff = stats.linregress(x1.data,y1.data)[0]-stats.linregress(x2.data, y2.data)[0]
+    #   combine the x1 and x2/y1 and y2
+    x_combine = np.append(np.array(x1),np.array(x2),axis=args["axis"])
+    y_combine = np.append(np.array(y1), np.array(y2), axis=args["axis"])
+    #   resample the x_combine and y_combine
+    fi_d = np.zeros(args["K"])
+    loc_num = range(0,len(x1)+len(x2))
+    for test_i in range(args["K"]):
+        fi_sample_list1 = np.random.choice(loc_num, size=13, replace=False)
+        fi_sample_list2 = list(set(loc_num) ^ set(fi_sample_list1))
+        #   generate te new samples
+        fi_x_sample1 = [x_combine[i] for i in fi_sample_list1]
+        fi_y_sample1 = [y_combine[i] for i in fi_sample_list1]
+        fi_x_sample2 = [x_combine[i] for i in fi_sample_list2]
+        fi_y_sample2 = [y_combine[i] for i in fi_sample_list2]
+            
+        fi_regress1 = stats.linregress(fi_x_sample1, fi_y_sample1)
+        fi_regress2 = stats.linregress(fi_x_sample2, fi_y_sample2)
+        d = fi_regress1[0]- fi_regress2[0]
+        fi_d[test_i] = d
+    fi_d = np.sort(fi_d)
+    if args["return_mask"]:
+        return np.where(min(sum(i > odiff for i in fi_d)/args["K"], sum(i < odiff for i in fi_d)/args["K"])*2<=args["CI"], 1.0, 0.0)
+    else:
+        return min(sum(i > odiff for i in fi_d)/args["K"], sum(i < odiff for i in fi_d)/args["K"])*2
+    del args, odiff, x_combine, y_combine, fi_d, loc_num, fi_sample_list1, fi_sample_list2, d, fi_x_sample1, fi_y_sample1, fi_x_sample2, fi_y_sample2
+
+
+def cal_rdiff(r1,r2):
+    Z1 = np.arctanh(r1)
+    Z2 = np.arctanh(r2)
+    zdiff = Z1-Z2
+    return np.tanh(zdiff)
+
+def cal_rMME(r,dim):
+    return np.tanh(np.arctanh(r).mean(dim=dim,skipna=True))
+    
+def Fisher_Z_test(r1,r2):
+    Z1 = np.arctanh(r1)
+    Z2 = np.arctanh(r2)
 # %%
