@@ -1662,7 +1662,6 @@ def generate_bootstrap_mask(low_lim1, high_lim1, low_lim2, high_lim2):
 def Fisher_permutation_test(x1,y1,x2,y2,**kargs):
     args = {"K":1000, "axis":0, "return_mask":False, "CI": 0.95}
     args = {**args, **kargs}
-    print(len(x1))
     #   calculate the original regression coefficients differences
     odiff = stats.linregress(x1.data,y1.data)[0]-stats.linregress(x2.data, y2.data)[0]
     #   combine the x1 and x2/y1 and y2
@@ -1686,7 +1685,7 @@ def Fisher_permutation_test(x1,y1,x2,y2,**kargs):
         fi_d[test_i] = d
     fi_d = np.sort(fi_d)
     if args["return_mask"]:
-        return np.where(min(sum(i > odiff for i in fi_d)/args["K"], sum(i < odiff for i in fi_d)/args["K"])*2<=args["CI"], 1.0, 0.0)
+        return np.where(min(sum(i > odiff for i in fi_d)/args["K"], sum(i < odiff for i in fi_d)/args["K"])*2<=1.-args["CI"], 1.0, 0.0)
     else:
         return min(sum(i > odiff for i in fi_d)/args["K"], sum(i < odiff for i in fi_d)/args["K"])*2
     del args, odiff, x_combine, y_combine, fi_d, loc_num, fi_sample_list1, fi_sample_list2, d, fi_x_sample1, fi_y_sample1, fi_x_sample2, fi_y_sample2
@@ -1697,11 +1696,21 @@ def cal_rdiff(r1,r2):
     Z2 = np.arctanh(r2)
     zdiff = Z1-Z2
     return np.tanh(zdiff)
+    del Z1,Z2,zdiff
 
 def cal_rMME(r,dim):
     return np.tanh(np.arctanh(r).mean(dim=dim,skipna=True))
     
-def Fisher_Z_test(r1,r2):
+def Fisher_Z_test(r1,r2,N1,N2,**kargs):
+    args = {"return_mask":False, "CI": 0.95}
+    args = {**args, **kargs}
     Z1 = np.arctanh(r1)
     Z2 = np.arctanh(r2)
+    z = (Z1-Z2)/np.sqrt(1./(N1-3.)+1./(N2-3.))
+    pvalue = 2*(1.-stats.norm.cdf(abs(z)))
+    if args["return_mask"]:
+        return np.where(pvalue<=1.-args["CI"],1.0,0.0)
+    else:
+        return z,pvalue
+    del args,Z1,Z2,z,pvalue
 # %%
