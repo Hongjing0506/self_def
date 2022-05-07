@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-04-26 01:04:04
+LastEditTime: 2022-05-06 23:58:17
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -181,7 +181,10 @@ def patches(ax, x0, y0, width, height, proj):
     )
     ax.add_patch(rect)
     
-def taylor_diagram(ax,r,std, dotlabels):
+def taylor_diagram(ax,r,std,**kargs):
+    dotlables=["" for _ in range(len(r))]
+    args = {"dotlables":dotlables, "color":"r", "lables":False}
+    args = {**args, **kargs}
     if np.min(r)<0:
         ax.set_thetalim(thetamin=0, thetamax=180)
         r_small, r_big, r_interval=0,1.5+0.1,0.5  #横纵坐标范围，最小值 最大值 间隔
@@ -243,8 +246,11 @@ def taylor_diagram(ax,r,std, dotlabels):
 
         # 画点，参数一相关系数，参数二标准差 
         for i in np.arange(0,len(r)):
-            ax.plot(np.arccos(r[i]), std[i], 'o',color='r',markersize=0, label='{} {}'.format(i+1,dotlabels[i]))
-            ax.text(np.arccos(r[i]), std[i], s='{}'.format(i+1), c='r',fontsize=10)
+            if args["lables"]:
+                ax.plot(np.arccos(r[i]), std[i], 'o',color=args["color"],markersize=0, label='{} {}'.format(i+1,args["dotlables"][i]))
+            else:
+                ax.plot(np.arccos(r[i]), std[i], 'o',color=args["color"],markersize=0)
+            ax.text(np.arccos(r[i]), std[i], s='{}'.format(i+1), c=args["color"],fontsize=10)
             # ax.text(np.arccos(r[i]-0.05), std[i], s='2', c='r',fontsize=13)
             # ax.plot(np.arccos(r[0]), std[0], 'o',color='#FF8000',markersize=10, label='1')
             # ax.text(np.arccos(r[0]-0.05), std[0], s='1', c='#FF8000',fontsize=13)
@@ -321,8 +327,11 @@ def taylor_diagram(ax,r,std, dotlabels):
 
         # 画点，参数一相关系数，参数二标准差 
         for i in np.arange(0,len(r)):
-            ax.plot(np.arccos(r[i]), std[i], 'o',color='r',markersize=0, label='{} {}'.format(i+1,dotlabels[i]))
-            ax.text(np.arccos(r[i]), std[i], s='{}'.format(i+1), c='r',fontsize=10)
+            if args["lables"]:
+                ax.plot(np.arccos(r[i]), std[i], 'o',color=args["color"],markersize=0, label='{} {}'.format(i+1,args["dotlables"][i]))
+            else:
+                ax.plot(np.arccos(r[i]), std[i], 'o',color=args["color"],markersize=0)
+            ax.text(np.arccos(r[i]), std[i], s='{}'.format(i+1), c=args["color"],fontsize=10)
             # ax.text(np.arccos(r[i]-0.05), std[i], s='2', c='r',fontsize=13)
             # ax.plot(np.arccos(r[0]), std[0], 'o',color='#FF8000',markersize=10, label='1')
             # ax.text(np.arccos(r[0]-0.05), std[0], s='1', c='#FF8000',fontsize=13)
