@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-05-06 23:58:17
+LastEditTime: 2022-05-13 13:44:06
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -165,19 +165,20 @@ def add_shape(shp_path, ax, proj):
     shape = cfeature.ShapelyFeature(reader.geometries(), proj, edgecolor='grey6', facecolor='grey6')
     ax.add_feature(shape, linewidth=0.8)
     
-def patches(ax, x0, y0, width, height, proj):
+def patches(ax, x0, y0, width, height, proj, **kargs):
     from matplotlib.patches import Rectangle
-
+    args = {"edgecolor":"grey7", "linewidth": 1.0, "linestyle": "--"}
+    args = {**args, **kargs}
     rect = Rectangle(
         (x0, y0),
         width,
         height,
         fc="none",
-        ec="grey7",
-        linewidth=1.0,
+        ec=args['edgecolor'],
+        linewidth=args['linewidth'],
         zorder=1.1,
         transform=proj,
-        linestyle="--",
+        linestyle=args["linestyle"],
     )
     ax.add_patch(rect)
     
