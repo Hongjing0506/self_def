@@ -128,13 +128,15 @@ param {*} x
 param {*} y
 return {*}
 '''
-def dim_linregress(x, y):
+def dim_linregress(x, y, **kargs):
     # returns: slope,intercept,rvalue,pvalue,hypothesis
+    args = {"input_core_dims":"time"}
+    args = {**args, **kargs}
     return xr.apply_ufunc(
         stats.linregress,
         x,
         y,
-        input_core_dims=[["time"], ["time"]],
+        input_core_dims=[[args["input_core_dims"]], [args["input_core_dims"]]],
         output_core_dims=[[], [], [], [], []],
         vectorize=True,
         dask="parallelized",
@@ -170,6 +172,27 @@ def IWF(u,v):
         v_IWF,
         vort,
         IWF
+    )
+    
+def LKY(u,v):
+    lat = u.coords["lat"]
+    lon = v.coords["lon"]
+    lat_range = lat[(lat >= 20.0) & (lat <= 50.0)]
+    lon_range = lon[(lon >= 110.0) & (lon <= 150.0)]
+    u_LKY = u.sel(lat=lat_range, lon=lon_range, level=200.0)
+    v_LKY = v.sel(lat=lat_range, lon=lon_range, level=200.0)
+    vort = mpcalc.vorticity(u_LKY, v_LKY)
+    LKY = cal_lat_weighted_mean(vort).mean(dim="lon", skipna=True).metpy.dequantify()
+    return LKY    
+    del (
+        lat,
+        lon,
+        lat_range,
+        lon_range,
+        u_LKY,
+        v_LKY,
+        vort,
+        LKY
     )
     
 def NEWI(u):
@@ -1414,14 +1437,14 @@ param {*} timestart 数据的起始时间
 return {*}
 '''
 def deannual_cycle_for_monthdata_3D(da, timestart):
-    da_month = ca.p_month(da, 1, 12)
+    da_month = p_month(da, 1, 12)
     da_monthmean = da_month.mean(dim="time", skipna=True)
     daa_month = da_month - da_monthmean
     daa_tmp = np.reshape(np.array(daa_month), [len(da.time), len(da.coords['lat']), len(da.coords['lon'])], order="F")
     lon = daa_month.coords["lon"]
-    time_new = pd.date_range(timestart, periods=len(sst.coords["time"]), freq="MS")
+    time_new = pd.date_range(timestart, periods=len(da.coords["time"]), freq="MS")
     daa = xr.DataArray(
-        daa_tmp, coords={"time": time_new, "lat": lat, "lon": lon}, dims=["time", "lat", "lon"]
+        daa_tmp, coords={"time": time_new, "lat": da.coords["lat"], "lon": da.coords["lon"]}, dims=["time", "lat", "lon"]
     )
     return daa
 
