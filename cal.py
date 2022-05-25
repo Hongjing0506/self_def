@@ -1345,12 +1345,16 @@ description: da为u风场，利用u风场计算高压、低压的脊线/槽线�
 param {*} da：u风场
 return {*} 返回脊线/槽线的经纬度
 '''
-def cal_ridge_line(da):
-    lat = da.coords["lat"]
-    ridgelon = np.array(da.coords["lon"])
+def cal_ridge_line(da, **kargs):
+    args = {"ridge_trough": "min", "lat":da.coords["lat"], "lon":da.coords["lon"]}
+    args = {**args, **kargs}
+    ridgelon = np.array(args["lon"])
     ridgelat = np.zeros(len(ridgelon))
     for i, longitude in enumerate(ridgelon):
-        ridgelat[i] = float(lat[abs(da.sel(lon=longitude)).argmin(dim="lat")])
+        if args["ridge_trough"] == "min":
+            ridgelat[i] = float(args["lat"][abs(da.sel(lon=longitude)).argmin(dim="lat")])
+        elif args["ridge_trough"] == "max":
+            ridgelat[i] = float(args["lat"][abs(da.sel(lon=longitude)).argmax(dim="lat")])
     return ridgelat, ridgelon
 
 '''
