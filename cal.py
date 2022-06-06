@@ -1364,7 +1364,7 @@ param {*} lat 变量的纬度，用于计算纬度加权
 param {*} num 返回num个模态的pc序列
 return {*}
 '''
-def eof_analys(da,lat,num):
+def eof_analyse(da,lat,num):
     coslat = np.cos(np.deg2rad(lat))
     wgts = np.sqrt(coslat)[..., np.newaxis]
 
@@ -1747,5 +1747,18 @@ def cal_mmemask(da, **kargs):
     mask = xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0)+xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0)
     return xr.where(mask>0, 1.0, 0.0)
 
-    
+def filplonlat(ds): 
+    # To facilitate data subsetting 
+    print(ds.attrs) 
+    print( f'\n\nBefore flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].' ) 
+    ds["lon"] = ((ds["lon"] + 180) % 360) - 180 
+    # Sort lons, so that subset operations end up being simpler. 
+    ds = ds.sortby("lon") 
+    print( f'\n\nAfter flip, lon range is [{ds["lon"].min().data}, {ds["lon"].max().data}].' ) 
+    # To facilitate data subsetting 
+    ds = ds.sortby("lat", ascending=True) 
+    print(ds.attrs) 
+    # print_debug('\n\nAfter sorting lat values, ds["lat"] is:') 
+    # print_debug(ds["lat"]) 
+    return ds
 # %%
