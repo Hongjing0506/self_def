@@ -1498,6 +1498,7 @@ def rolling_regression_pattern(x, y, time, window, freq):
     hyvalue = hyvalue.transpose("time", ...)
     return avalue, bvalue, rvalue, pvalue, hyvalue
 
+#   this function is useless because mpcalc.divergence(da1, da2) can calculate the divergence straightforwardly
 def cal_divergence(da1, da2):
     dx, dy = mpcalc.lat_lon_grid_deltas(da1.coords["lon"], da1.coords["lat"])
     div = xr.apply_ufunc(
