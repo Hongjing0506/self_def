@@ -1745,8 +1745,8 @@ def Fisher_Z_test(r1,r2,N1,N2,**kargs):
 def cal_mmemask(da, **kargs):
     args = {"dim":"models", "percent": 0.70}
     args = {**args, **kargs}
-    mask = xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0)+xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0)
-    return xr.where(mask>0, 1.0, 0.0)
+    mask = xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0)+xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=args["percent"], -1.0, 0.0)
+    return xr.where(mask*da.mean(dim="models",skipna=True)>0, 1.0, 0.0)
 
 def filplonlat(ds): 
     # To facilitate data subsetting 
