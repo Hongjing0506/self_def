@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-05-13 13:44:06
+LastEditTime: 2022-07-07 21:23:04
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -61,7 +61,9 @@ param {int} lonmin 经度次刻度间隔
 param {int} latmin 纬度次刻度间隔
 return {*}
 '''    
-def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents):
+def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents, **kargs):
+    args = {"labelsize":7, "majorticklen":4.0, "minorticklen":3.0}
+    args = {**args, **kargs}
     import proplot as pplt
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
@@ -89,9 +91,9 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents):
         ax.tick_params(
             axis="both",
             which="major",
-            labelsize=7,
+            labelsize=args["labelsize"],
             direction="out",
-            length=4.0,
+            length=args["majorticklen"],
             width=0.8,
             pad=2.0,
             top=False,
@@ -101,7 +103,7 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents):
             axis="both",
             which="minor",
             direction="out",
-            length=3.0,
+            length=args["minorticklen"],
             width=0.8,
             top=False,
             right=False,
