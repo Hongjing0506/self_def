@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-07-07 21:23:04
+LastEditTime: 2022-07-08 15:38:22
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -57,12 +57,23 @@ param {axs object} axs 图
 param {array} lonticks 经度刻度
 param {array} latticks 纬度刻度
 param {int} cl 地图投影中心的经度
-param {int} lonmin 经度次刻度间隔
-param {int} latmin 纬度次刻度间隔
 return {*}
+log:
+updated in 2022/07/08: 
+    add **kargs, including: 
+		majorticklabelsize: the font size of major tick labels
+		majorticklen: the length of major tick
+		minorticklen: the length of minor tick
+		coastcolor: the color of coastline
+		coastlinewidth: the line width of coastline
+		lonminorspace: the space of minor longitude ticks
+		latminorspace: the space of minor latitude ticks
+		majorticklabelpad: the pad between tick and ticklabel
+    fixing bugs:
+		fixed the bug that when central_longitude was not 0, set_extent attribute became invalid
 '''    
-def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents, **kargs):
-    args = {"labelsize":7, "majorticklen":4.0, "minorticklen":3.0}
+def geo_ticks(axs, lonticks, latticks, cl, extents, **kargs):
+    args = {"majorticklabelsize":7, "majorticklen":4.0, "minorticklen":3.0, "coastcolor":"grey6", "coastlinewidth":1.3, "lonminorspace":10, "latminorspace":5, "majorticklabelpad":2.0}
     args = {**args, **kargs}
     import proplot as pplt
     import cartopy.crs as ccrs
@@ -70,32 +81,32 @@ def geo_ticks(axs, lonticks, latticks, cl, lonmin, latmin, extents, **kargs):
     from cartopy.mpl.ticker import LongitudeFormatter
     from cartopy.mpl.ticker import LatitudeFormatter
     from matplotlib.ticker import MultipleLocator
-    
-    axs.format(coast=True, coastlinewidth=0.8, coastzorder=1, coastcolor="grey6")
-    proj = pplt.PlateCarree(central_longitude=cl)
+    axs.format(coast=True, coastlinewidth=args["coastlinewidth"], coastzorder=1, coastcolor=args["coastcolor"], labels=False, grid=False)
+    proj = ccrs.PlateCarree(central_longitude=cl)
     lonticks += -cl
+    extents[0] = extents[0]-cl
+    extents[1] = extents[1]-cl
     axs.set_extent(extents, crs=proj)
     axs.set_xticks(lonticks, crs=proj)
     axs.set_yticks(latticks, crs=proj)
     lon_formatter = LongitudeFormatter(zero_direction_label=True)
     lat_formatter = LatitudeFormatter()
     axs.minorticks_on()
-    xminorLocator = MultipleLocator(lonmin)
-    yminorLocator = MultipleLocator(latmin)
+    xminorLocator = MultipleLocator(args["lonminorspace"])
+    yminorLocator = MultipleLocator(args["latminorspace"])
     for ax in axs:
         ax.xaxis.set_major_formatter(lon_formatter)
         ax.yaxis.set_major_formatter(lat_formatter)
         ax.xaxis.set_minor_locator(xminorLocator)
         ax.yaxis.set_minor_locator(yminorLocator)
-        ax.outline_patch.set_linewidth(1.0)
         ax.tick_params(
             axis="both",
             which="major",
-            labelsize=args["labelsize"],
+            labelsize=args["majorticklabelsize"],
             direction="out",
             length=args["majorticklen"],
             width=0.8,
-            pad=2.0,
+            pad=args["majorticklabelpad"],
             top=False,
             right=False,
         )
