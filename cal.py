@@ -1513,6 +1513,16 @@ def cal_divergence(da1, da2):
     )
     return div
 
+'''
+description: 本函数用于对xarray数组进行butterworth滤波
+param {*} da  需要进行滤波的xarray数组
+param {*} deg butterworth的阶数，阶数越高滤波效果越优越;一般为8
+param {*} ya  滤波的时间年
+param {*} yb  滤波的时间年（>ya）（仅带通时需要）
+param {*} btype 滤波的类型：低通、高通或带通
+return {*}
+LastEditTime: Do not edit
+'''
 def butterworth_filter(da, deg, ya, yb, btype):
     da = da.transpose("time", ...)
     da = da - da.mean(dim="time", skipna=True)
