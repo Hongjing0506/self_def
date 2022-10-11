@@ -1433,6 +1433,13 @@ def cal_lat_weighted_mean(da):
     weights.name = "weights"
     da_mean = da.weighted(weights).mean(("lat"), skipna=True)
     return da_mean
+  
+def cal_area_weighted_mean(da):
+    weights = np.cos(np.deg2rad(da.lat))
+    weights.name = "weights"
+    da_mean = da.weighted(weights).mean(("lat"), skipna=True)
+    da_mean = da_mean.mean(dim="lon", skipna=True)
+    return da_mean
 
 '''
 description: 对于timexlatxlon的三维月数据去除年循环
