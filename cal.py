@@ -1,12 +1,12 @@
-"""
+'''
 Author: ChenHJ
-Date: 2021-12-03 11:45:38
+Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2021-12-03 14:54:28
-FilePath: /chenhj/self_def/self_def.py
+LastEditTime: 2022-10-13 13:25:21
+FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
-"""
+'''
 # %%
 import numpy as np
 import xarray as xr
@@ -1779,4 +1779,34 @@ def filplonlat(ds):
     # print_debug('\n\nAfter sorting lat values, ds["lat"] is:') 
     # print_debug(ds["lat"]) 
     return ds
+
+'''
+description: 这个函数用于生成MME的检验mask，生成的结果中大于0表示该格点结果通过检验
+    需要指定检验的方法：1、Chen and Yu (2020)文章中的检验；2、模式同号率；3、两者兼用
+param {*} da：待检验的xarray数据
+param {object} kargs
+    dim: 对哪一维做检验，默认为"models"
+    percent: 指定模式同号率检验方法的模式同号百分比，默认70%
+    chenandyu: 指定是否使用Chen and Yu (2020)的方法进行检验，默认False
+    big: 指定是否使用模式同号率方法进行检验，默认False
+return {*} mask
+LastEditTime: Do not edit
+'''
+def MME_mask(da, **kargs):
+    args = {"dim":"models", "percent":0.70, "chenandyu":False, "big":False}
+    args = {**args, **kargs}
+    lamb = 1.96
+    lim = da.std(dim=args["dim"], skipna=True)*lamb/np.sqrt(len(da.coords[args["dim"]]))
+    mask1 = xr.where(abs(da.mean(dim=args["dim"]))-lim>=0.0, 1.0, 0.0)
+    mask2 = xr.where((xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0) + xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=args["percent"], -1.0, 0.0))*da.mean(dim=args["dim"], skipna=True)>0, 1.0, 0.0)
+    if args["chenandyu"] and args["big"]:
+      return xr.where(mask1+mask2 >= 2.0, 1.0, 0.0)
+    elif args["chenandyu"]:
+      return mask1
+    elif args["big"]:
+      return mask2
+    else:
+      print("What type of significant test do you want???")
+    
+
 # %%
