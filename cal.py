@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-10-13 13:25:21
+LastEditTime: 2022-10-31 13:50:28
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -366,6 +366,55 @@ def WY(u):
         u200_weighted_mean,
     )
     return wyindex
+
+
+'''
+description: 用于将月数据转换为季节数据，DJF已考虑过渡年，因此作为损失，最后一年将只保留1、2月用于计算倒数第二年的DJF；输入的数据，可以以2月份作为时间结尾，也可以以12月份作为数据结尾；
+param {*} data
+param {object} 
+kargs: 
+  continuous: True/False(default) - 为True时，返回季节连续的数据，即时间维度为春、夏、秋、冬的连续数据
+  season: "all"(default)/"MAM"/"JJA"/"SON"/"DJF" - 为all时，分别返回MAM、JJA、SON、DJF的数据；为MAM/JJA/SON/DJF时，则返回对应季节的数据
+return {*}
+LastEditTime: Do not edit
+'''
+def mon_to_season(data, **kargs):
+  args = {"continuous":False, "season":"all"}
+  args = {**args, **kargs}
+  try:
+      if pd.to_datetime(data.time).month[-1] == 2:
+          timesel = data.time[2:]
+      elif pd.to_datetime(data.time).month[-1] == 12:
+          timesel = data.time[2:-10]
+      else:
+          raise ValueError("the time of variable should be end in FEB or DEC")
+  except ValueError as e:
+      print("error: ", repr(e))
+  new_data = data.sel(time=timesel).coarsen(time=3).mean()
+  data_MAM = new_data.sel(time=new_data.time.dt.month == 4)
+  data_JJA = new_data.sel(time=new_data.time.dt.month == 7)
+  data_SON = new_data.sel(time=new_data.time.dt.month == 10)
+  data_DJF = new_data.sel(time=new_data.time.dt.month == 1)
+  try:
+    if args["continuous"]:
+      return new_data
+    elif args["season"] == "all":
+      return data_MAM, data_JJA, data_SON, data_DJF
+    elif args["season"] == "MAM":
+      return data_MAM
+    elif args["season"] == "JJA":
+      return data_JJA
+    elif args["season"] == "SON":
+      return data_SON
+    elif args["season"] == "DJF":
+      return data_DJF
+    else:
+      raise ValueError('key arguments options:[continuous:True/False] [season:"all"/"MAM"/"JJA"/"SON"/"DJF"]')
+  except ValueError as e:
+    print("error: ", repr(e))
+  del (new_data, data_MAM, data_JJA, data_SON, data_DJF)
+
+
 
 
 """
