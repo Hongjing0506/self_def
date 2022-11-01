@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-10-31 13:50:28
+LastEditTime: 2022-10-31 13:59:00
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -381,16 +381,7 @@ LastEditTime: Do not edit
 def mon_to_season(data, **kargs):
   args = {"continuous":False, "season":"all"}
   args = {**args, **kargs}
-  try:
-      if pd.to_datetime(data.time).month[-1] == 2:
-          timesel = data.time[2:]
-      elif pd.to_datetime(data.time).month[-1] == 12:
-          timesel = data.time[2:-10]
-      else:
-          raise ValueError("the time of variable should be end in FEB or DEC")
-  except ValueError as e:
-      print("error: ", repr(e))
-  new_data = data.sel(time=timesel).coarsen(time=3).mean()
+  new_data = data.sel(time=data.time[2:-1]).coarsen(time=3).mean()
   data_MAM = new_data.sel(time=new_data.time.dt.month == 4)
   data_JJA = new_data.sel(time=new_data.time.dt.month == 7)
   data_SON = new_data.sel(time=new_data.time.dt.month == 10)
