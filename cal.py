@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-11-04 13:06:32
+LastEditTime: 2022-11-04 19:54:11
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1403,19 +1403,26 @@ description: 计算da的eof分析，da需要已经标准化处理过、去趋势
 param {*} da 变量场，需要已经经过标准化和detrend处理
 param {*} lat 变量的纬度，用于计算纬度加权
 param {*} num 返回num个模态的pc序列
+param {object} kargs: "north": passmode
 return {*}
+LastEditTime: Do not edit
 '''
-def eof_analyse(da,lat,num):
+def eof_analyse(da,lat,num, **kargs):
+    args = {"north":"passmode"}
+    args = {**args, **kargs}
     coslat = np.cos(np.deg2rad(lat))
     wgts = np.sqrt(coslat)[..., np.newaxis]
-
     solver = Eof(da, weights=wgts)
-    EOFs = solver.eofsAsCorrelation()
+    EOFs = solver.eofs(neofs = num, eofscaling = 2)
     PCs = solver.pcs(npcs = num, pcscaling = 1)
     eigen_Values = solver.eigenvalues()
     percentContrib = eigen_Values * 100./np.sum(eigen_Values)
-
-    return EOFs,PCs,percentContrib
+    north = solver.northTest()
+    if args["north"] == "passmode":
+      print([True if abs(percentContrib[t]-percentContrib[t+1])/north[t]>=1.0 else False for t in range(len(percentContrib)-1)])
+      return EOFs,PCs,percentContrib
+    else:
+      return EOFs,PCs,percentContrib,north
 
 '''
 description: 统一数据的时间坐标
