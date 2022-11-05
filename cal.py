@@ -2,10 +2,11 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-11-04 19:54:11
+LastEditTime: 2022-11-05 15:27:21
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
+目前已有的tag: 统计检验、显著性检验、生成mask
 '''
 # %%
 import numpy as np
@@ -1252,7 +1253,8 @@ def year_choose(year, da):
     return selcase
 
 '''
-description: 计算da1和da2平均值差异是否显著并生成mask图，超过clevel显著性水平的区域标记为1.0，否则为0.0
+description: 计算da1和da2平均值差异是否显著并生成mask图，超过clevel显著性水平的区域标记为1.0，否则为0.0 (两组数据平均值是否存在显著性差异)
+tag: 统计检验、显著性检验、生成mask
 param {*} da1   数据组1
 param {*} da2   数据组2
 param {*} clevel    置信度
