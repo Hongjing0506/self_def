@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-11-05 15:27:21
+LastEditTime: 2022-11-13 00:51:25
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -39,6 +39,7 @@ import metpy.calc as mpcalc
 import metpy.constants as constants
 import geocat.comp
 from windspharm.xarray import VectorWind
+import statsmodels.api as sm
 
 """
 description: 
@@ -1857,6 +1858,31 @@ def MME_mask(da, **kargs):
       return mask2
     else:
       print("What type of significant test do you want???")
-    
 
+'''
+description: 本函数用于计算多元线性回归的回归系数（偏回归系数）及其p值
+param {*} y：因变量
+param {*} x_list：多元变量的列表，函数将自动把这些变量拼接起来
+param {object} kargs：
+    dim: 用于计算时间的维度名，默认为时间维度；
+    concat_dim: 拼接而成的新维度的名字，默认为new_dim；
+return {*} 返回的第一个数组为偏回归系数，第二个数组为p值
+LastEditTime: Do not edit
+'''
+def multi_var_regression(y, x_list, **kargs):
+    args = {"dim": "time", "concat_dim": "new_dim"}
+    args = {**args, **kargs}
+    def func(y,x):
+      func0 = lambda y, x: sm.OLS(y,sm.add_constant(x)).fit()
+      return func0(y,x).params[1:], func0(y,x).pvalues[1:]
+    return xr.apply_ufunc(
+      func,
+      y,
+      xr.concat(x_list, dim=args["concat_dim"]),
+      input_core_dims=[[args["dim"]], [args["dim"], args["concat_dim"]]],
+      output_core_dims=[[args["concat_dim"]], [args["concat_dim"]]],
+      vectorize=True,
+      dask="parallelized",
+      keep_attrs=True,
+    )
 # %%
