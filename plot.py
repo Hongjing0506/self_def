@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-07-08 15:38:22
+LastEditTime: 2022-11-15 16:48:30
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -358,3 +358,19 @@ def taylor_diagram(ax,r,std,**kargs):
         # ax.plot(np.arccos(r[5]), std[5], '^',color='#00AEAE',markersize=10, label='6')
         # ax.text(np.arccos(r[5]-0.05), std[5], s='6', c='#00AEAE',fontsize=13)
         ax.set_ylabel('Std (Normalized)',labelpad=35)
+
+
+def contour_label(ax, contourf_instance, **kargs):
+  xmin,xmax,ymin,ymax = plt.axis()
+  plotmid = (xmin+xmax)/2, (ymin+ymax)/2
+  label_pos = []
+  for num_line,line in enumerate(contourf_instance.collections):
+    for path in line.get_paths():
+      # 获取contour线的每一点的坐标
+      vert = path.vertices
+
+      # 寻找最接近中心的点
+      dist = np.linalg.norm(vert-plotmid, ord=2, axis=1)
+      min_ind = np.argmin(dist)
+      label_pos.append(vert[min_ind-num_line+len(contourf_instance.collections)//2,:])
+  ax.clabel(contourf_instance, manual=label_pos, **kargs)
