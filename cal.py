@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-11-13 00:51:25
+LastEditTime: 2022-11-17 16:57:23
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1411,7 +1411,7 @@ return {*}
 LastEditTime: Do not edit
 '''
 def eof_analyse(da,lat,num, **kargs):
-    args = {"north":"passmode"}
+    args = {"north":False, "montecarlo":False, "montecarlo_times":100, "montecarlo_test": 0.95}
     args = {**args, **kargs}
     coslat = np.cos(np.deg2rad(lat))
     wgts = np.sqrt(coslat)[..., np.newaxis]
@@ -1421,11 +1421,31 @@ def eof_analyse(da,lat,num, **kargs):
     eigen_Values = solver.eigenvalues()
     percentContrib = eigen_Values * 100./np.sum(eigen_Values)
     north = solver.northTest()
-    if args["north"] == "passmode":
+    if args["montecarlo"]:
+      test = []
+      test_new = []
+      pass_mode = []
+      for i in range(args["montecarlo_times"]):
+        montecarlo_test = np.random.normal(size=da.shape)
+        test_solver = Eof((montecarlo_test-np.mean(montecarlo_test))/np.std(montecarlo_test, axis=0), weights=wgts)
+        test_eigen_Values = test_solver.eigenvalues()
+        test.append(test_eigen_Values*100./np.sum(test_eigen_Values))
+      for j in range(da.shape[0]):
+        for i in range(args["montecarlo_times"]):
+          test_new.append(test[i][j])
+        test_new.sort()
+        if percentContrib[j]>=test_new[int(args["montecarlo_times"]*args["montecarlo_test"])]:
+          pass_mode.append("True")
+        else:
+          pass_mode.append("False")
+      print(pass_mode)
+      del(i, j, montecarlo_test, test_solver, test_eigen_Values, test, test_new, pass_mode)
+    if args["north"]:
       print([True if abs(percentContrib[t]-percentContrib[t+1])/north[t]>=1.0 else False for t in range(len(percentContrib)-1)])
       return EOFs,PCs,percentContrib
     else:
-      return EOFs,PCs,percentContrib,north
+      return EOFs,PCs,percentContrib
+
 
 '''
 description: 统一数据的时间坐标
