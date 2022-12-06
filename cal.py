@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-11-17 16:57:23
+LastEditTime: 2022-12-05 15:14:39
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -13,12 +13,12 @@ import numpy as np
 import xarray as xr
 import os
 import re
-from cdo import Cdo
+from cdo import *
 import shutil
 import pandas as pd
 import sys
 
-cdo = Cdo()
+cdo = Cdo
 
 # for plot
 import proplot as pplt

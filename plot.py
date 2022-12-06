@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2021-12-12 21:40:15
 LastEditors: ChenHJ
-LastEditTime: 2022-11-15 16:48:30
+LastEditTime: 2022-12-06 12:02:04
 FilePath: /chenhj/self_def/plot.py
 Aim: 
 Mission: 
@@ -11,11 +11,11 @@ import numpy as np
 import xarray as xr
 import os
 import re
-from cdo import Cdo
+from cdo import *
 import shutil
 import pandas as pd
 
-cdo = Cdo()
+cdo = Cdo
 
 # for plot
 import proplot as pplt
