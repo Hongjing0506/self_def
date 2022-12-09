@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-12-05 15:14:39
+LastEditTime: 2022-12-06 20:49:14
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1905,4 +1905,35 @@ def multi_var_regression(y, x_list, **kargs):
       dask="parallelized",
       keep_attrs=True,
     )
+    
+def new_detrend_dim(y, **kargs):
+  args = {"dim": "time", "demean":True}
+  args = {**args, **kargs}
+  def func(y,x):
+    func0 = lambda y, x: sm.OLS(y,sm.add_constant(x)).fit()
+    return func0(y,x).params[:], func0(y,x).pvalues[:]
+  cal_time = xr.DataArray(
+    data=range(len(y.time)),
+    dims=["time"],
+    coords=dict(
+        time=(["time"], y.time.data),
+    )
+)
+  polyval, pvalue = xr.apply_ufunc(
+    func,
+    y,
+    cal_time,
+    input_core_dims=[[args["dim"]], [args["dim"]]],
+    output_core_dims=[["degree"], ["degree"]],
+    vectorize=True,
+    dask="parallelized",
+    keep_attrs=True,
+    dask_gufunc_kwargs={"output_sizes":{"degree":2}}
+  )
+  polyval.coords["degree"] = np.array([0, 1])
+  fit = xr.polyval(cal_time, polyval)
+  if args["demean"]:
+      return polyval, pvalue, (y - fit), 
+  elif args["demean"]:
+      return (polyval, pvalue, y - fit) + y.mean(dim="time", skipna=True)
 # %%
