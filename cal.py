@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-12-06 20:49:14
+LastEditTime: 2022-12-11 12:43:39
 FilePath: /chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -80,11 +80,9 @@ param {integer} mon_e
 return {*}
 """
 def p_month(data, mon_s, mon_e):
-    import pandas as pd
-    import xarray as xr
 
     time = data["time"]
-    data.transpose("time", ...)
+    data = data.transpose("time", ...).copy()
     year_s = pd.to_datetime(time).year[0]
     year_e = pd.to_datetime(time).year[-1]
     nyear = pd.date_range(str(year_s), str(year_e), freq="AS")
