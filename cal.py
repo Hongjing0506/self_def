@@ -2,8 +2,8 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2022-12-11 12:43:39
-FilePath: /chenhj/self_def/cal.py
+LastEditTime: 2022-12-29 17:21:16
+FilePath: /self_def/cal.py
 Aim: 
 Mission: 
 目前已有的tag: 统计检验、显著性检验、生成mask
@@ -147,9 +147,11 @@ description: 对da进行标准化处理
 param {*} da    数据
 return {*}
 '''
-def standardize(da):
-    mean = da.mean(dim="time", skipna=True)
-    std = da.std(dim="time", skipna=True)
+def standardize(da, **kargs):
+    args={"dim":"time"}
+    args={**args, **kargs}
+    mean = da.mean(dim=args["dim"], skipna=True)
+    std = da.std(dim=args["dim"], skipna=True)
     return (da - mean) / std
 
 
