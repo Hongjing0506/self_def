@@ -151,12 +151,22 @@ def filplonlat(ds):
     print(ds["lat"])
     return ds
 
-def plt_sig(da, ax, n, area, color, large):
-    
+def plt_sig(da, ax, n, area, color, large, marker=".", **kargs):
+    """对需要的位置打点
+
+    Args:
+        da (_type_): _description_
+        ax (_type_): _description_
+        n (_type_): _description_
+        area (_type_): _description_
+        color (_type_): _description_
+        large (_type_): _description_
+        marker (str, optional): _description_. Defaults to ".".
+    """
     da_cyc, lon_cyc = add_cyclic_point(da[::n, ::n], coord=da.lon[::n])
     nx, ny = np.meshgrid(lon_cyc, da.lat[::n])
     sig = ax.scatter(
-        nx[area], ny[area], marker=".", s=large, c=color, alpha=0.6)
+        nx[area], ny[area], marker=marker, s=large, c=color, alpha=0.6, **kargs)
 
 def leadlag_array(da, n):
     new = da
