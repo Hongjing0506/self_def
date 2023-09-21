@@ -2,8 +2,8 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-01-16 21:54:08
-FilePath: /self_def/cal.py
+LastEditTime: 2023-05-26 20:20:09
+FilePath: /0302code/home/ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
 目前已有的tag: 统计检验、显著性检验、生成mask
@@ -18,7 +18,7 @@ import shutil
 import pandas as pd
 import sys
 
-cdo = Cdo
+cdo = Cdo()
 
 # for plot
 import proplot as pplt
@@ -461,7 +461,7 @@ def CMIP6_predealing_1(srcPath, tmpPath, dstPath, variable, freq, rl):
                     print(file_name)
                     inputfile = os.path.join(path, file_name)
                     outputfile = os.path.join(tmpPath, "tmp_" + file_name)
-                    cdo.remapbil("r144x72", input=inputfile, output=outputfile)
+                    cdo.remapbil("r144x72", input="-selvar,"+var+" " +inputfile, output=outputfile)
                     mergelist.append(file_name)
                 else:
                     pass
@@ -551,6 +551,20 @@ def uniform_plev(filepath, dstpath, var):
     fvar = f[var]
     fvar.coords['plev'] = plev
     fvar.to_netcdf(dstpath)
+
+def save(var, path):
+  '''检查该文件是否存在，然后保存
+
+  Args:
+      path (_type_): _description_
+
+  Returns:
+      _type_: _description_
+  '''  
+  if os.path.exists(path):
+    os.remove(path)
+  var.to_netcdf(path)
+
 
 # md:统计类——相关、回归计算
 def detrend_dim(da, dim="time", deg=1, demean=True):      
@@ -892,7 +906,7 @@ def leadlag_reg_rolling(x, y, ll, window, inan=True, freq="season"):
     return (avalue, bvalue, rvalue, pvalue, hyvalue)
 
 
-def leadlag_reg3D(x, y, ll, clevel=[True, 0.95], inan=True, freq="season"):
+def leadlag_reg3D(x, y, ll, clevel=[True, 0.95], inan=True, freq="leadlag"):
     """用于计算3D(season, year, lat, lon)变量场的超前滞后相关，同时将输出对应置信度的r临界值，其中x、y为已经处理为（季节x年份）的数据
 
     Args:
@@ -1384,6 +1398,42 @@ def cal_pcc(var1, var2):
     pcc = v1v2 / np.sqrt(v1v1) / np.sqrt(v2v2)
     return pcc
 
+def rolling_parreg(x, y, window, concat_dim, concat_coords):
+  '''计算滑动多元回归
+
+  Args:
+      x (list): 包含用于计算多元回归的所有自变量的列表
+      y (dataarray): 多元回归的因变量
+      window (integer): 滑动窗口长度，一般为单数
+      concat_dim (string): 多元回归计算后，因变量拓展维度的维度名
+      concat_coords (array or list): 多元回归计算后，赋值给因变量拓展维度的坐标变量
+  '''
+  dims_list = y.dims  # 获取变量y的坐标维度列表(如('models', 'time', 'lat', 'lon'))
+  time = y.coords["time"]
+  tmp_y = y.transpose("time", ...)  # 调整维度的顺序
+  var_list = {concat_dim:(concat_dim,concat_coords)}
+  
+  parreg_slope = np.full((len(x),)+np.shape(tmp_y), np.nan)
+  parreg_pvalue = np.full((len(x),)+np.shape(tmp_y), np.nan)
+  
+  slope = tmp_y.expand_dims({concat_dim:len(x)}).copy()
+  slope = slope.assign_coords(**var_list)
+  slope.data = parreg_slope
+  slope = slope.transpose("time",...,"area")
+  
+  pvalue = tmp_y.expand_dims({concat_dim:len(x)}).copy()
+  pvalue = pvalue.assign_coords(**var_list)
+  pvalue.data = parreg_pvalue
+  pvalue = pvalue.transpose("time",...,"area")
+
+  for nx in range(window//2, len(time)-window//2):
+    slope[nx], pvalue[nx] = multi_var_regression(tmp_y[nx:nx+window], [i.transpose("time",...)[nx:nx+window] for i in x], concat_dim=concat_dim)
+  
+  return(slope, pvalue)
+
+
+
+
 # md:统计类——显著性检验类
 def if_two_group_have_diff_mean_t(da1, da2, dim="time", clevel=0.95, return_mask=True):
     """用于比较两组数据之间，平均值是否具有组间差异
@@ -1770,18 +1820,28 @@ def cal_mmemask(da, **kargs):
     return xr.where(mask*da.mean(dim="models",skipna=True)>0, 1.0, 0.0)
 
 
-def MME_mask(da, **kargs):
-    args = {"dim":"models", "percent":0.70, "chenandyu":False, "big":False}
-    args = {**args, **kargs}
+def MME_mask(da, dim="models", percent=0.70, chenandyu=False, big=False):
+    '''_summary_
+
+    Args:
+        da (dataarray): 待检测数组
+        dim (str, optional): 对哪一个维度进行检测. Defaults to "models".
+        percent (float, optional): 认同的模式比例. Defaults to 0.70.
+        chenandyu (bool, optional): 是否使用chenandyu的方法检测. Defaults to False.
+        big (bool, optional): 是否使用大多数模式认同的方法检测. Defaults to False.
+
+    Returns:
+        dataarray: 返回生成的mask
+    '''    
     lamb = 1.96
-    lim = da.std(dim=args["dim"], skipna=True)*lamb/np.sqrt(len(da.coords[args["dim"]]))
-    mask1 = xr.where(abs(da.mean(dim=args["dim"]))-lim>=0.0, 1.0, 0.0)
-    mask2 = xr.where((xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=args["percent"], 1.0, 0.0) + xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=args["percent"], -1.0, 0.0))*da.mean(dim=args["dim"], skipna=True)>0, 1.0, 0.0)
-    if args["chenandyu"] and args["big"]:
+    lim = da.std(dim=dim, skipna=True)*lamb/np.sqrt(len(da.coords[dim]))
+    mask1 = xr.where(abs(da.mean(dim=dim))-lim>=0.0, 1.0, 0.0)
+    mask2 = xr.where((xr.where(xr.where(da>0, 1.0, 0.0).mean(dim="models")>=percent, 1.0, 0.0) + xr.where(xr.where(da<0, 1.0, 0.0).mean(dim="models")>=percent, -1.0, 0.0))*da.mean(dim=dim, skipna=True)>0, 1.0, 0.0)
+    if chenandyu and big:
         return xr.where(mask1+mask2 >= 2.0, 1.0, 0.0)
-    elif args["chenandyu"]:
+    elif chenandyu:
         return mask1
-    elif args["big"]:
+    elif big:
         return mask2
     else:
         print("What type of significant test do you want???")
@@ -2035,17 +2095,17 @@ def WY(u):
 
 
 # md: 统计类——其他分析方法
-def eof_analyse(da,lat,num, north=False,montecarlo=False,montecarlo_times=100,montecarlo_test=0.95):
+def eof_analyse(da,lat,num, north_test=False,montecarlo=False,montecarlo_times=100,montecarlo_cl=0.95):
     """计算da的eof分析，da需要已经标准化处理过、去趋势的变量
 
     Args:
         da (ndarray): 变量场，需要已经经过标准化和detrend处理
         lat (ndarray): 变量的纬度，用于计算纬度加权
         num (int): 返回num个模态的pc序列
-        north (bool, optional):是否使用north检验. Defaults to False.
+        north_test (bool, optional):是否使用north检验. Defaults to False.
         montecarlo (bool, optional): 是否应用Monte Carlo检验. Defaults to False.
         monteccarlo_times (int, optional): Monte Carlo重抽样的次数. Defaults to 100.
-        montecarlo_test (float, optional): Monte Carlo检验的置信度水平. Defaults to 0.95.
+        montecarlo_cl (float, optional): Monte Carlo检验的置信度水平. Defaults to 0.95.
 
     Returns:
         ndarray: EOF pattern
@@ -2073,13 +2133,13 @@ def eof_analyse(da,lat,num, north=False,montecarlo=False,montecarlo_times=100,mo
             for i in range(montecarlo_times):
                 test_new.append(test[i][j])
                 test_new.sort()
-            if percentContrib[j]>=test_new[int(montecarlo_times*montecarlo_test)]:
+            if percentContrib[j]>=test_new[int(montecarlo_times*montecarlo_cl)]:
                 pass_mode.append("True")
             else:
                 pass_mode.append("False")
         print(pass_mode)
         del(i, j, montecarlo_test, test_solver, test_eigen_Values, test, test_new, pass_mode)
-        if north:
+        if north_test:
             print([True if abs(percentContrib[t]-percentContrib[t+1])/north[t]>=1.0 else False for t in range(len(percentContrib)-1)])
             return EOFs,PCs,percentContrib
         else:
