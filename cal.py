@@ -2,8 +2,8 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-05-26 20:20:09
-FilePath: /0302code/home/ys17-23/chenhj/self_def/cal.py
+LastEditTime: 2023-12-06 22:20:49
+FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
 目前已有的tag: 统计检验、显著性检验、生成mask
@@ -40,6 +40,7 @@ import metpy.constants as constants
 import geocat.comp
 from windspharm.xarray import VectorWind
 import statsmodels.api as sm
+from datetime import datetime
 
 # md:变量前处理类函数
 def p_time(data, mon_s, mon_end, meanon=True):
@@ -408,6 +409,56 @@ def filplonlat(ds):
     # print_debug('\n\nAfter sorting lat values, ds["lat"] is:') 
     # print_debug(ds["lat"]) 
     return ds
+
+def days_in_month(year, month):
+    # 使用datetime库来获取每个月的天数
+    first_day_of_month = datetime(year, month, 1)
+    if month == 12:
+        last_day_of_month = datetime(year + 1, 1, 1)
+    else:
+        last_day_of_month = datetime(year, month + 1, 1)
+    num_days = (last_day_of_month - first_day_of_month).days
+    return num_days
+
+def generate_month_days_array(start_year, end_year):
+    """生成从startyear到endyear的每个月月份天数的序列
+
+    Args:
+        start_year (int): 开始年份
+        end_year (int): 结束年份
+
+    Returns:
+        np.array: 生成从startyear到endyear的每个月月份天数的序列
+    """    
+    years = np.arange(start_year, end_year + 1)
+    months = np.arange(1, 13)
+    
+    result_array = []
+    for year in years:
+        for month in months:
+            num_days = days_in_month(year, month)
+            result_array.append([year, month, num_days])
+    
+    return np.array(result_array)
+
+def permonth_to_perday_3D(data,startyear,endyear):
+    """生成从startyear到endyear的每个月月份天数的序列，并扩容成输入的data的形状，data需要是3维数据；将data数据的单位从/month转换为/day
+
+    Args:
+        data (dataarray): 3维数据
+        startyear (int): 开始年份
+        endyear (int): 结束年份
+
+    Returns:
+        dataarray: 将data数据的单位从/month转换为/day后的数组
+    """    
+    dim_size = data.shape
+    daypermonth = generate_month_days_array(startyear,endyear)
+    daypermonth_new = np.zeros(dim_size)
+    daypermonth_new[:,:,:] = daypermonth[:,np.newaxis,np.newaxis]
+    new_data = data/daypermonth_new
+    return new_data
+
 
 # md:数据预处理（文件层面）
 def p_year(srcPath, dstPath, start, end):
