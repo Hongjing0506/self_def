@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-06 22:20:49
+LastEditTime: 2023-12-06 22:27:38
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -437,7 +437,7 @@ def generate_month_days_array(start_year, end_year):
     for year in years:
         for month in months:
             num_days = days_in_month(year, month)
-            result_array.append([year, month, num_days])
+            result_array.append(num_days)
     
     return np.array(result_array)
 
