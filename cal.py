@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-06 22:27:38
+LastEditTime: 2023-12-08 00:11:12
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1448,6 +1448,18 @@ def cal_pcc(var1, var2):
     # print(v2v2)
     pcc = v1v2 / np.sqrt(v1v1) / np.sqrt(v2v2)
     return pcc
+
+def cal_rmse(obs,data,lat="lat",lon="lon"):
+  """计算RMSE（无面积加权）
+
+  Args:
+      obs (dataarray): 基准数据
+      data (dataarray): 被比较数据（例如：模式数据）
+      lat (str, optional): 纬度维度名称. Defaults to "lat".
+      lon (str, optional): 经度维度名称. Defaults to "lon".
+  """    
+  return(np.sqrt(np.power((data-obs),2)).mean(dim=[lat,lon],skipna=True).data)
+
 
 def rolling_parreg(x, y, window, concat_dim, concat_coords):
   '''计算滑动多元回归
