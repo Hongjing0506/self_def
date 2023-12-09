@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-09 15:47:07
+LastEditTime: 2023-12-09 17:23:05
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1449,15 +1449,15 @@ def cal_pcc(var1, var2):
     pcc = v1v2 / np.sqrt(v1v1) / np.sqrt(v2v2)
     return pcc
 
-def cal_rmse(obs,data,mean_dims=["lat", "lon"]):
+def cal_rmse(data,obs,mean_dims=["lat", "lon"]):
   """计算RMSE（无面积加权）
 
   Args:
-      obs (dataarray): 基准数据
       data (dataarray): 被比较数据（例如：模式数据）
+      obs (dataarray): 基准数据
       mean_dims (str or list, optional): 求平均的维度名
   """    
-  return(np.sqrt(np.power((data-obs),2).mean(dim=mean_dims,skipna=True)).data)
+  return(np.sqrt(np.power((data-obs),2).mean(dim=mean_dims,skipna=True)))
 
 
 def rolling_parreg(x, y, window, concat_dim, concat_coords):
