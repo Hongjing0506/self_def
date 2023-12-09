@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-09 15:26:26
+LastEditTime: 2023-12-09 15:47:07
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -1457,7 +1457,7 @@ def cal_rmse(obs,data,mean_dims=["lat", "lon"]):
       data (dataarray): 被比较数据（例如：模式数据）
       mean_dims (str or list, optional): 求平均的维度名
   """    
-  return(np.sqrt(np.power((data-obs),2)).mean(dim=mean_dims,skipna=True).data)
+  return(np.sqrt(np.power((data-obs),2).mean(dim=mean_dims,skipna=True)).data)
 
 
 def rolling_parreg(x, y, window, concat_dim, concat_coords):
