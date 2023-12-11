@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-09 17:23:05
+LastEditTime: 2023-12-09 22:45:52
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -347,6 +347,13 @@ def deannual_cycle_for_monthdata_3D(da, timestart):
         daa_tmp, coords={"time": time_new, "lat": da.coords["lat"], "lon": da.coords["lon"]}, dims=["time", "lat", "lon"]
     )
     return daa
+
+def deannual_cycle_for_monthdata(da,da_shape,oda_shape):
+    da = da.transpose(["time",...])
+    nda_array = (np.reshape(da.data,da_shape) - np.broadcast_to(da.groupby("time.month").mean(dim="time"),da_shape)).reshape(oda_shape)
+    new_da = da.copy()
+    new_da.data = nda_array
+    return(new_da)
 
 
 def butterworth_filter(da, ya, yb, btype, deg=8):
