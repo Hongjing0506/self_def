@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-09 22:45:52
+LastEditTime: 2023-12-28 15:23:30
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -2264,6 +2264,17 @@ def cal_divergence(da1, da2):
     return div
 
 # md:其他
+def arange(start,end,level):
+    """改善np.arange的使用
+
+    Args:
+        start (_type_): _description_
+        end (_type_): _description_
+        level (_type_): _description_
+    """    
+    return(np.arange(start,end+level/2,level))
+
+
 def retrieve_allstrindex(filename, strkey):
     """返回字符串中，需要搜索的字段的所在位置
 
