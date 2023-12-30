@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-28 15:23:30
+LastEditTime: 2023-12-30 20:32:09
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -465,6 +465,55 @@ def permonth_to_perday_3D(data,startyear,endyear):
     daypermonth_new[:,:,:] = daypermonth[:,np.newaxis,np.newaxis]
     new_data = data/daypermonth_new
     return new_data
+
+def preDataForSpaceDomain(da):
+    """通过重组为 time x 空间的2D数组，将数据中的nan和inf值去除并进行标准化；用于不能存在nan和inf值的计算变量的前处理；
+
+    Args:
+        da (dataarray): 待处理数组
+
+    Returns:
+        data(array): 处理完毕的数组
+        idx(array): 原数组中，有限值的索引值
+
+    """    
+    data_in = da.values
+    nt, ny, nx = da.shape
+    dimlon = len(da.lon)
+    dimlat = len(da.lat)
+    # concatenate 3d data into 3d:
+    data_2d = np.reshape(data_in, [nt, ny * nx])
+    # create land mask
+    mask = np.min(data_2d, axis=0) # mask的形状为1D，长度为ny*nx的值，利用了只要存在nan就会直接输出nan的特性；
+    mask[np.isfinite(mask)] = 1 #将有效值的区域的掩码设置为1
+    # mask1d = np.array(mask.flatten())
+    idx = np.where(np.isnan(mask.flatten()))
+    data_2d[:, idx[0]] = np.nan # 将所有时间上都统一设置nan
+    # remove NaNs
+    idx = np.where(np.isfinite(mask.flatten())) # 将有限值的索引值都提取出来
+    data_2d = data_2d[~np.isnan(data_2d)] # 去除所有nan值，此时data_2d的形状会变为1D，需要reshape
+    data_2d = data_2d.reshape(nt, len(idx[0]))
+    # data = np.array(scale(data_2d))
+    data = np.array(data_2d)
+    data = (data - np.nanmean(data, axis=0)) / np.nanstd(data, axis=0) # 标准化
+    print("Data range: {} to {}".format(np.nanmin(data), np.nanmax(data)))
+    return data, idx
+
+def extract_idx_in_som(cluster_index):
+    """根据每个样本分属哪一类，反过来得到属于某一类的样本索引值；
+
+    Args:
+        cluster_index (array): 每个样本分属哪一类的序列
+    
+    Return:
+        idx (dict): 属于某一类的样本索引值，key为类别的数字
+    """    
+    idx = {}
+    for c in np.unique(cluster_index):
+        idx.update({str(c):np.where(cluster_index == c)[0]})
+    return(idx)
+    
+    
 
 
 # md:数据预处理（文件层面）
