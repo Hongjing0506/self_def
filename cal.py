@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-30 20:32:09
+LastEditTime: 2023-12-30 20:49:36
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -499,19 +499,7 @@ def preDataForSpaceDomain(da):
     print("Data range: {} to {}".format(np.nanmin(data), np.nanmax(data)))
     return data, idx
 
-def extract_idx_in_som(cluster_index):
-    """根据每个样本分属哪一类，反过来得到属于某一类的样本索引值；
 
-    Args:
-        cluster_index (array): 每个样本分属哪一类的序列
-    
-    Return:
-        idx (dict): 属于某一类的样本索引值，key为类别的数字
-    """    
-    idx = {}
-    for c in np.unique(cluster_index):
-        idx.update({str(c):np.where(cluster_index == c)[0]})
-    return(idx)
     
     
 
@@ -2342,6 +2330,28 @@ def retrieve_allstrindex(filename, strkey):
         loc.append(c)
     return loc
 
+def extract_idx_in_som(cluster_index, **kwargs):
+    """根据每个样本分属哪一类，反过来得到属于某一类的样本索引值；
 
+    Args:
+        cluster_index (array): 每个样本分属哪一类的序列
+    
+    Return:
+        idx (dict): 属于某一类的样本索引值，key为类别的数字
+    """    
+    args = {"ifyear":False, "time":None}
+    args = {**args, **kwargs}
+        
+    idx = {}
+    for c in np.unique(cluster_index):
+        idx.update({str(c):np.where(cluster_index == c)[0]})
+    if args["ifyear"]:
+        idxtime = {}
+        for icluster in np.unique(cluster_index):
+            idxtime.update({str(icluster):(args["time"].dt.year)[idx[str(icluster)]]})
+        return(idxtime)
+    else:
+        return(idx)
+            
 
 # %%
