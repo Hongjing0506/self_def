@@ -2,7 +2,7 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2023-12-30 20:49:36
+LastEditTime: 2024-01-23 00:04:40
 FilePath: /ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
@@ -464,6 +464,23 @@ def permonth_to_perday_3D(data,startyear,endyear):
     daypermonth_new = np.zeros(dim_size)
     daypermonth_new[:,:,:] = daypermonth[:,np.newaxis,np.newaxis]
     new_data = data/daypermonth_new
+    return new_data
+
+def unit_change(data,factor):
+    """将输入的转换系数矩阵扩容成输入的data的形状，data需要是3维数据；data数据的单位具体转换成什么样，取决于输入的转换系数。
+
+    Args:
+        data (dataarray): 3维数据
+        startyear (int): 开始年份
+        endyear (int): 结束年份
+
+    Returns:
+        dataarray: data数据的单位转换后的结果
+    """    
+    dim_size = data.shape
+    factor_new = np.zeros(dim_size)
+    factor_new[:,:,:] = factor[:,np.newaxis,np.newaxis]
+    new_data = data/factor_new
     return new_data
 
 def preDataForSpaceDomain(da):
