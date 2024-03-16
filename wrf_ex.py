@@ -244,7 +244,7 @@ def get_var(wrfin, var, freq,**kwargs):
   if isinstance(func, list):
     result = func[0](wrfin)[func[1]]
   elif callable(func):
-    ca._check_kargs(var,kwargs)
+    ca._check_kargs(var=var,**kwargs)
     result = func(wrfin,var,**kwargs)
   else:
     raise ValueError(f"No function defined for variable {var}")
