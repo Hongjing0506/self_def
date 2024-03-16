@@ -2,8 +2,8 @@
 Author: ChenHJ
 Date: 2022-03-02 16:58:52
 LastEditors: ChenHJ
-LastEditTime: 2024-01-23 00:04:40
-FilePath: /ys17-23/chenhj/self_def/cal.py
+LastEditTime: 2024-03-16 16:03:28
+FilePath: /wrftest/home/ys17-23/chenhj/self_def/cal.py
 Aim: 
 Mission: 
 目前已有的tag: 统计检验、显著性检验、生成mask
@@ -664,7 +664,7 @@ def uniform_plev(filepath, dstpath, var):
     fvar.coords['plev'] = plev
     fvar.to_netcdf(dstpath)
 
-def save(var, path):
+def save(var, path, **kwargs):
   '''检查该文件是否存在，然后保存
 
   Args:
@@ -675,7 +675,7 @@ def save(var, path):
   '''  
   if os.path.exists(path):
     os.remove(path)
-  var.to_netcdf(path)
+  var.to_netcdf(path,**kwargs)
 
 
 # md:统计类——相关、回归计算
@@ -2317,6 +2317,45 @@ def cal_divergence(da1, da2):
     )
     return div
 
+# md: 函数工具类
+_VALID_KARGS = {"PRAVG":["time_int"]
+    }
+def viewkeys(d):
+    """Return either the keys or viewkeys method for a dictionary.
+
+    Args:
+
+        d (:obj:`dict`): A dictionary.
+
+    Returns:
+
+        view method: Either the keys or viewkeys method.
+
+    """
+    func = getattr(d, "viewkeys", None)
+    if func is None:
+        func = d.keys
+    return func()
+
+def _check_kargs(var="default", **kargs):
+    """检查除了"default"以外的给函数传入的参数名和参数值是否有误
+
+    Args:
+        var (str): 传入的参数对应的函数名
+        kargs (_type_): 传入的参数
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+    """  
+    for arg in viewkeys(kargs):
+        if arg not in _VALID_KARGS[var]:
+            if var != "default":
+                raise ValueError("'{}' is an invalid keyword "
+                                 "argument for '{}'".format(arg, var))
+            else:
+                raise ValueError("'{}' is an invalid keyword "
+                                 "argument".format(arg))
 # md:其他
 def arange(start,end,level):
     """改善np.arange的使用
